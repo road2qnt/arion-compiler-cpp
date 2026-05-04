@@ -4,9 +4,9 @@ CXXFLAGS = -std=c++17 -Wall
 SRC_DIR = src
 BIN_DIR = bin
 
-TARGET = $(BIN_DIR)/lexer
+TARGET = $(BIN_DIR)/arion
 
-SRCS = $(wildcard $(SRC_DIR)/*.cpp)
+SRCS = $(shell find $(SRC_DIR) -name '*.cpp')
 OBJS = $(SRCS:$(SRC_DIR)/%.cpp=$(BIN_DIR)/%.o)
 
 all: $(TARGET)
@@ -16,10 +16,13 @@ $(TARGET): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(BIN_DIR)
+	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
 clean:
 	rm -rf $(BIN_DIR)
 
-.PHONY: all clean
+run: $(TARGET)
+	./$(TARGET) $(if $(FILE),$(FILE),test.txt)
+
+.PHONY: all clean run

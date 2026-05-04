@@ -1,8 +1,14 @@
 #include <iostream>
 #include <fstream>
-#include "lexer.hpp"
-#include "token.hpp"
+#include "lexical-analysis/lexer.hpp"
+#include "lexical-analysis/token.hpp"
+#include "syntax-analysis/parser.hpp"
+#include "utils/printTree.hpp"
+#include "debugger/tokenDumper.hpp"
+#include "debugger/astVisualizer.hpp"
+
 using namespace std;
+
 int main(int argc, char* argv[]) {
     if (argc < 2) {
         cout << "Usage: " << argv[0] << " <source_file> [output_file]" << endl;
@@ -12,6 +18,8 @@ int main(int argc, char* argv[]) {
     Lexer lexer;
     lexer.DFA(filename);
     vector<Token> tokens = lexer.getTokens();
+
+    dumpTokens(tokens);
 
     ostream* out = &cout;
     ofstream outFile;
@@ -24,15 +32,21 @@ int main(int argc, char* argv[]) {
         out = &outFile;
     }
 
-    for (const Token& token : tokens) {
-        if (token.type == TokenType::IDENT || token.type == TokenType::INTCON ||
-            token.type == TokenType::REALCON || token.type == TokenType::CHARCON ||
-            token.type == TokenType::STRING || token.type == TokenType::ERROR ||
-            token.type == TokenType::COMMENT) {
-            *out << tokenToString(token.type) << " (" << token.value << ")" << endl;
-        } else {
-            *out << tokenToString(token.type) << endl;
-        }
+    // CHECKPOINT TEST
+    cout << "--- Phase 1: Dummy Tree Test ---" << endl;
+    Parser parser(tokens);
+    ParseNode dummyRoot = parser.testDummyTree();
+    printTree(cout, dummyRoot);
+    if (out != &cout) {
+        printTree(*out, dummyRoot);
     }
+    cout << "--------------------------------" << endl;
+
+    ASTVisualizer visualizer;
+    visualizer.generateDotFile(dummyRoot, "dummy_tree.dot");
+
+    // TODO: Phase 2+ -> root = parser.parseProgram(); printTree(*out, root);
+
+
     return 0;
 }

@@ -1,7 +1,8 @@
 #include "token.hpp"
-Token::Token(TokenType type, const string& value) {
+Token::Token(TokenType type, const string& value, int line) {
     this->type = type;
     this->value = value;
+    this->line = line;
 }
 string tokenToString(TokenType type) {
     switch (type) {
@@ -63,7 +64,7 @@ string tokenToString(TokenType type) {
 }
 string toLower(const string& str) {
     string result = str;
-    for (int i = 0; i < result.size(); i++) {
+    for (size_t i = 0; i < result.size(); i++) {
         if (result[i] >= 'A' && result[i] <= 'Z') {
             result[i] = result[i] + ('a' - 'A');
         }

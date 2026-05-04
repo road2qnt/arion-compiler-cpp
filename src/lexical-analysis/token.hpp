@@ -20,7 +20,8 @@ enum class TokenType {
 struct Token {
     TokenType type;
     string value;
-    Token(TokenType type, const string& value = "");
+    int line;
+    Token(TokenType type, const string& value = "", int line = 0);
 };
 string tokenToString(TokenType type);
 TokenType keyword(const string& ident);
