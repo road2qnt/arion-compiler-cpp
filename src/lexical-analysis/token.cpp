@@ -58,6 +58,7 @@ string tokenToString(TokenType type) {
         case TokenType::DOWNTOSY:     return "downtosy";
         case TokenType::THENSY:       return "thensy";
         case TokenType::COMMENT:      return "comment";
+        case TokenType::UNKNOWN:      return "unknown";
         case TokenType::ERROR:        return "error";
         default:                      return "unknown";
     }

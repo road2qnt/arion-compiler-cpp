@@ -15,6 +15,7 @@ enum class TokenType {
     BEGINSY, IFSY, CASESY, REPEATSY, WHILESY, FORSY,
     ENDSY, ELSESY, UNTILSY, OFSY, DOSY, TOSY, DOWNTOSY, THENSY,
     COMMENT,
+    UNKNOWN,
     ERROR
 };
 struct Token {

@@ -30,18 +30,22 @@ void Lexer::DFA(const string& filename) {
         return;
     }
     string lexeme;
+    bool allowDigitAfterPeriod = false;
     while (file.get(c)){
         bool char_processed = false;
         while (!char_processed) {
             switch(state){
                 case STATE_START:
                     if (isWhitespace(c)) { 
+                        allowDigitAfterPeriod = false;
                         char_processed = true; 
                     } else if (isWord(c)) {
+                        allowDigitAfterPeriod = false;
                         state = STATE_KID; 
                         lexeme += c;
                         char_processed = true;
                     } else if (isDigit(c)) {
+                        allowDigitAfterPeriod = false;
                         state = STATE_NUM; 
                         lexeme += c;
                         char_processed = true;
@@ -96,6 +100,7 @@ void Lexer::DFA(const string& filename) {
                         }
                         string prd = ".";
                         addToken(true, STATE_PRD, prd);
+                        allowDigitAfterPeriod = (c == '.');
                         lexeme = "";
                         state = STATE_START;
                     }
@@ -196,7 +201,17 @@ void Lexer::DFA(const string& filename) {
                     }
                     break;
                 case STATE_PRD: 
-                    addToken(true, state, lexeme); lexeme = ""; state = STATE_START;
+                    if (isDigit(c) && !allowDigitAfterPeriod){
+                        state = STATE_ERR;
+                        lexeme += c;
+                        char_processed = true;
+                        allowDigitAfterPeriod = false;
+                    } else {
+                        addToken(true, state, lexeme);
+                        allowDigitAfterPeriod = (c == '.');
+                        lexeme = "";
+                        state = STATE_START;
+                    }
                     break;
                 case STATE_LPR:
                     if (c == '*') {
@@ -303,9 +318,9 @@ void Lexer::addToken(bool finish, int state, string& value) {
             case STATE_LKOM:
                 tokens.push_back(Token(TokenType::COMMENT, value)); break;
             case STATE_ERR:
-                tokens.push_back(Token(TokenType::ERROR, value)); break;
+                tokens.push_back(Token(TokenType::UNKNOWN, value)); break;
             default:
-                tokens.push_back(Token(TokenType::ERROR, value)); break;
+                tokens.push_back(Token(TokenType::UNKNOWN, value)); break;
         }
     }
 }
