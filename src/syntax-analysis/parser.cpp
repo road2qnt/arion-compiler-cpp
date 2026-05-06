@@ -32,14 +32,17 @@ bool Parser::match(TokenType type) const {
     return peek().type == type;
 }
 
-void Parser::expect(TokenType type) {
+ParseNode Parser::expect(TokenType type) {
     if (match(type)) {
+        ParseNode node(tokenToLabel(peek()),true);
         advance();
+        return node;
     } else {
         string expectedStr = tokenToString(type);
         string foundStr = tokenToString(peek().type);
         // Note: Adding line number later
         error("unexpected token " + foundStr + ", expected " + expectedStr);
+        // [TODO!] NODE ERROR ?. Nanti dicek lagi!
     }
 }
 
@@ -88,4 +91,4 @@ ParseNode Parser::parse(){
     result.children.push_back(parseCompoundStatement());
     // Terakhir: Period
     // result.children.push_back(expect(TokenType(PERIOD)));
-}
+}      

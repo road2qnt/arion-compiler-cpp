@@ -21,7 +21,7 @@ private:
     Token peekAhead(int n) const;
     void advance();
     bool match(TokenType type) const;
-    void expect(TokenType type);
+    ParseNode expect(TokenType type);
     void error(const std::string& msg) const;
 
     std::string tokenToLabel(const Token& t) const;
