@@ -1,0 +1,13 @@
+<Program>
+├── <Program-header>
+│   ├── programsy
+│   ├── ident(Comments)
+│   └── semicolon
+├── <declaration-part>
+├── <compound-statement>
+│   ├── error
+│   ├── <statement-list>
+│   │   └── <statement>
+│   │       └── error
+│   └── error
+└── error
