@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+// [TODO!] Belum ada implementasi untuk 7 fungsi di bawah!
+
 ParseNode Parser::parseType(){
     /* ident |
     array-type |

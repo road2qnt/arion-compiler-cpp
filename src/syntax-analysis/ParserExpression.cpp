@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+// [TODO!] Belum ada implementasi untuk 6 fungsi di bawah!
+
 ParseNode Parser::parseExpression(){
     // simple-expression (relational-operator + simple-expression)?
 }

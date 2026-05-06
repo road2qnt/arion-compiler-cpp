@@ -1,5 +1,7 @@
 #include "parser.hpp"
 
+// [TODO!] Belum ada implementasi untuk 10 fungsi di bawah!
+
 ParseNode Parser::parseCompoundStatement(){
     // beginsy + statement-list + endsy
 }

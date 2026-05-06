@@ -10,4 +10,7 @@ ParseNode Parser::parseProgramHeader(){
 
 ParseNode Parser::parseBlock(){
     // declaration-part + compound-statement
+    ParseNode node = ParseNode("<Block>");
+    node.children.push_back(parseDeclarationPart());
+    node.children.push_back(parseCompoundStatement());
 }

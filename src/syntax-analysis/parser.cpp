@@ -47,6 +47,7 @@ ParseNode Parser::expect(TokenType type) {
 }
 
 void Parser::error(const string& msg) const {
+    // [TODO!] JANGAN LANGSUNG DITHROW 
     throw SyntaxError(msg);
 }
 
@@ -89,6 +90,7 @@ ParseNode Parser::parse(){
     result.children.push_back(parseProgramHeader());
     result.children.push_back(parseDeclarationPart());
     result.children.push_back(parseCompoundStatement());
-    // Terakhir: Period
-    // result.children.push_back(expect(TokenType(PERIOD)));
+    result.children.push_back(expect(TokenType::PERIOD));
+
+    return result;
 }      

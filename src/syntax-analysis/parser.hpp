@@ -14,9 +14,11 @@ public:
     // Debugging
     ParseNode testDummyTree();
 private:
+    // Atribut
     std::vector<Token> tokens;
     int pos;
 
+    // Private Method
     Token peek() const;
     Token peekAhead(int n) const;
     void advance();
