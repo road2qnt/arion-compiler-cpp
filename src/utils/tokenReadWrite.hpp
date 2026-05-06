@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <cctype>
 
+// === Jika Baca dari File yang berisi TOKEN ===
+
 class TokenReadWrite{
 private:
     std::string pathFile;
@@ -90,6 +92,7 @@ private:
         else if (lower == "downtosy") type = TokenType::DOWNTOSY;
         else if (lower == "thensy") type = TokenType::THENSY;
         else if (lower == "comment") type = TokenType::COMMENT;
+        else if (lower == "unknown") type = TokenType::UNKNOWN;
         else if (lower == "error") type = TokenType::ERROR;
         else return false;
 
