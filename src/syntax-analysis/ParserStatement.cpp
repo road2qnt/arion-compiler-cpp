@@ -77,7 +77,7 @@ ParseNode Parser::parseStatement(){
     } else if (match(TokenType::FORSY)){
         node.children.push_back(parseForStatement());
     } else if (!isStatementFollow(peek().type)){
-        error("unexpected token " + tokenToString(peek().type) + " in statement");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in statement"));
     }
 
     return node;
@@ -175,7 +175,7 @@ ParseNode Parser::parseForStatement(){
     } else if (match(TokenType::DOWNTOSY)){
         node.children.push_back(expect(TokenType::DOWNTOSY));
     } else {
-        error("unexpected token " + tokenToString(peek().type) + ", expected tosy or downtosy");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + ", expected tosy or downtosy"));
     }
     node.children.push_back(parseExpression());
     node.children.push_back(expect(TokenType::DOSY));

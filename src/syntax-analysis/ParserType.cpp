@@ -54,10 +54,10 @@ ParseNode Parser::parseType(){
         } else if (match(TokenType::IDENT)){
             node.children.push_back(expect(TokenType::IDENT));
         } else {
-            error("unexpected token " + tokenToString(peek().type) + " in type");
+            node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in type"));
         }
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in type");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in type"));
     }
 
     return node;
@@ -90,7 +90,7 @@ ParseNode Parser::parseArrayType(){
     } else if (match(TokenType::IDENT)){
         node.children.push_back(expect(TokenType::IDENT));
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in array-type");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in array-type"));
     }
 
     node.children.push_back(expect(TokenType::RBRACK));

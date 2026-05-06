@@ -24,7 +24,7 @@ private:
     void advance();
     bool match(TokenType type) const;
     ParseNode expect(TokenType type);
-    void error(const std::string& msg) const;
+    ParseNode error(const std::string& msg) const;
 
     std::string tokenToLabel(const Token& t) const;
 

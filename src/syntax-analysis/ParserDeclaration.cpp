@@ -26,7 +26,7 @@ ParseNode Parser::parseConstDeclaration(){
 
     node.children.push_back(expect(TokenType::CONSTSY));
     if (!match(TokenType::IDENT)){
-        error("unexpected token " + tokenToString(peek().type) + " in const-declaration");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in const-declaration"));
     }
 
     while (match(TokenType::IDENT)){
@@ -45,7 +45,7 @@ ParseNode Parser::parseTypeDeclaration(){
 
     node.children.push_back(expect(TokenType::TYPESY));
     if (!match(TokenType::IDENT)){
-        error("unexpected token " + tokenToString(peek().type) + " in type-declaration");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in type-declaration"));
     }
 
     while (match(TokenType::IDENT)){
@@ -63,7 +63,7 @@ ParseNode Parser::parseVarDeclaration(){
 
     node.children.push_back(expect(TokenType::VARSY));
     if (!match(TokenType::IDENT)){
-        error("unexpected token " + tokenToString(peek().type) + " in var-declaration");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in var-declaration"));
     }
 
     while (match(TokenType::IDENT)){
@@ -84,7 +84,7 @@ ParseNode Parser::parseSubprogramDeclaration(){
     } else if (match(TokenType::FUNCTIONSY)){
         node.children.push_back(parseFunctionDeclaration());
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in subprogram-declaration");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in subprogram-declaration"));
     }
 
     return node;
@@ -146,7 +146,7 @@ ParseNode Parser::parseParameterGroup(){
     } else if (match(TokenType::ARRAYSY)){
         node.children.push_back(parseArrayType());
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in parameter-group");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in parameter-group"));
     }
 
     return node;

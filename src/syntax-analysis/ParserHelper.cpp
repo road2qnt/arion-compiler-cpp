@@ -42,7 +42,7 @@ ParseNode Parser::parseConstant(){
         } else if (match(TokenType::REALCON)){
             node.children.push_back(expect(TokenType::REALCON));
         } else {
-            error("unexpected token " + tokenToString(peek().type) + " in constant");
+            node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in constant"));
         }
     }
 
@@ -59,13 +59,13 @@ ParseNode Parser::parseIndexList(){
     } else if (match(TokenType::IDENT)){
         node.children.push_back(expect(TokenType::IDENT));
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in index-list");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in index-list"));
     }
 
     while (match(TokenType::COMMA)){
         node.children.push_back(expect(TokenType::COMMA));
         if (!isIndexStart(peek().type)){
-            error("unexpected token " + tokenToString(peek().type) + " in index-list");
+            node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in index-list"));
         }
 
         if (match(TokenType::INTCON)){
@@ -96,7 +96,7 @@ ParseNode Parser::parseRelationalOperator(){
     } else if (match(TokenType::LEQ)){
         node.children.push_back(expect(TokenType::LEQ));
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in relational-operator");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in relational-operator"));
     }
 
     return node;
@@ -112,7 +112,7 @@ ParseNode Parser::parseAdditiveOperator(){
     } else if (match(TokenType::ORSY)){
         node.children.push_back(expect(TokenType::ORSY));
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in additive-operator");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in additive-operator"));
     }
 
     return node;
@@ -132,7 +132,7 @@ ParseNode Parser::parseMultiplicativeOperator(){
     } else if (match(TokenType::ANDSY)){
         node.children.push_back(expect(TokenType::ANDSY));
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in multiplicative-operator");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in multiplicative-operator"));
     }
 
     return node;

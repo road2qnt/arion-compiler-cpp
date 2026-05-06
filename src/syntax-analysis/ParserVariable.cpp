@@ -24,7 +24,7 @@ ParseNode Parser::parseComponentVariable(){
         node.children.push_back(expect(TokenType::PERIOD));
         node.children.push_back(expect(TokenType::IDENT));
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in component-variable");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in component-variable"));
     }
 
     return node;

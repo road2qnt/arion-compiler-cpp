@@ -23,6 +23,18 @@ namespace {
                type == TokenType::IMOD ||
                type == TokenType::ANDSY;
     }
+
+    bool isExpressionStart(TokenType type){
+        return type == TokenType::IDENT ||
+               type == TokenType::INTCON ||
+               type == TokenType::REALCON ||
+               type == TokenType::CHARCON ||
+               type == TokenType::STRING ||
+               type == TokenType::LPARENT ||
+               type == TokenType::NOTSY ||
+               type == TokenType::PLUS ||
+               type == TokenType::MINUS;
+    }
 }
 
 ParseNode Parser::parseExpression(){
@@ -93,18 +105,20 @@ ParseNode Parser::parseFactor(){
         node.children.push_back(expect(TokenType::NOTSY));
         node.children.push_back(parseFactor());
     } else {
-        error("unexpected token " + tokenToString(peek().type) + " in factor");
+        node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in factor"));
     }
 
     return node;
 }
 ParseNode Parser::parseProcedureFunctionCall(){
-    // ident + (lparent + parameter-list + rparent)
+    // ident + (lparent + parameter-list? + rparent)
     ParseNode node = ParseNode("<procedure-function-call>");
 
     node.children.push_back(expect(TokenType::IDENT));
     node.children.push_back(expect(TokenType::LPARENT));
-    node.children.push_back(parseParameterList());
+    if (isExpressionStart(peek().type)){
+        node.children.push_back(parseParameterList());
+    }
     node.children.push_back(expect(TokenType::RPARENT));
 
     return node;

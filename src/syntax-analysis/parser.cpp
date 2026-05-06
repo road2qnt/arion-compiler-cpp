@@ -1,5 +1,4 @@
 #include "parser.hpp"
-#include "syntaxError.hpp"
 #include "../debugger/parserTrace.hpp"
 #include <iostream>
 
@@ -40,15 +39,13 @@ ParseNode Parser::expect(TokenType type) {
     } else {
         string expectedStr = tokenToString(type);
         string foundStr = tokenToString(peek().type);
-        // Note: Adding line number later
-        error("unexpected token " + foundStr + ", expected " + expectedStr);
-        // [TODO!] NODE ERROR ?. Nanti dicek lagi!
+        return error("unexpected token " + foundStr + ", expected " + expectedStr);
     }
 }
 
-void Parser::error(const string& msg) const {
-    // [TODO!] JANGAN LANGSUNG DITHROW 
-    throw SyntaxError(msg);
+ParseNode Parser::error(const string& msg) const {
+    cout << "Syntax error: " << msg << endl;
+    return ParseNode("error", true);
 }
 
 string Parser::tokenToLabel(const Token& t) const {
