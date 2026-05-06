@@ -1,0 +1,19 @@
+programsy
+ident(Comments)
+semicolon
+comment({ ini komentar kurung kurawal })
+varsy
+ident(a)
+colon
+ident(integer)
+semicolon
+beginsy
+comment((* ini komentar
+   bintang kurung *))
+ident(a)
+becomes
+intcon(42)
+semicolon
+comment({ komentar lagi })
+endsy
+period

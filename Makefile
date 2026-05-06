@@ -27,7 +27,7 @@ $(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 run: $(TARGET)
-	./$(TARGET) $(if $(FILE),$(FILE),test.txt)
+	./$(TARGET) $(FILE) $(LEXOUT) $(SYNOUT)
 
 clean:
 	rm -rf $(BIN_DIR)
