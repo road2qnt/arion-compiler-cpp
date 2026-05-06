@@ -13,4 +13,6 @@ ParseNode Parser::parseBlock(){
     ParseNode node = ParseNode("<Block>");
     node.children.push_back(parseDeclarationPart());
     node.children.push_back(parseCompoundStatement());
+
+    return node;
 }
