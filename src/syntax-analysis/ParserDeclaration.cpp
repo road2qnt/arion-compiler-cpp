@@ -12,7 +12,7 @@ ParseNode Parser::parseDeclarationPart(){
     while (match(TokenType::VARSY)){
         node.children.push_back(parseVarDeclaration());
     }
-    while (match(TokenType::PROGRAMSY)){
+    while (match(TokenType::PROCEDURESY) || match(TokenType::FUNCTIONSY)){
         node.children.push_back(parseSubprogramDeclaration());
     }
 
@@ -22,63 +22,72 @@ ParseNode Parser::parseDeclarationPart(){
 
 ParseNode Parser::parseConstDeclaration(){
     // constsy + (ident + eql + constant + semicolon)+
-    ParseNode node = ParseNode("const-declaration");
-    // Expect contsy
+    ParseNode node = ParseNode("<const-declaration>");
+
     node.children.push_back(expect(TokenType::CONSTSY));
-    while(match(TokenType::IDENT)){
-        // Expect ident
+    if (!match(TokenType::IDENT)){
+        error("unexpected token " + tokenToString(peek().type) + " in const-declaration");
+    }
+
+    while (match(TokenType::IDENT)){
         node.children.push_back(expect(TokenType::IDENT));
-        // Expect eql
         node.children.push_back(expect(TokenType::EQL));
-        // [!] Parseconstant
         node.children.push_back(parseConstant());
-        // Expect semicolon
         node.children.push_back(expect(TokenType::SEMICOLON));
     }
+
     return node;
 }
 
 ParseNode Parser::parseTypeDeclaration(){
     // typesy + (ident + eql + type + semicolon)+
-    ParseNode node = ParseNode("type-declaration");
+    ParseNode node = ParseNode("<type-declaration>");
 
-    // Expect typesy
     node.children.push_back(expect(TokenType::TYPESY));
+    if (!match(TokenType::IDENT)){
+        error("unexpected token " + tokenToString(peek().type) + " in type-declaration");
+    }
+
     while (match(TokenType::IDENT)){
-        // Expect ident
         node.children.push_back(expect(TokenType::IDENT));
-        // Expect eql
         node.children.push_back(expect(TokenType::EQL));
-        // [!] parseType
         node.children.push_back(parseType());
-        // Expect semicolon
         node.children.push_back(expect(TokenType::SEMICOLON));
     }
+
+    return node;
 }
 ParseNode Parser::parseVarDeclaration(){
     // varsy + (identifier-list + colon + type + semicolon)+
-    ParseNode node = ParseNode("var-declaration");
+    ParseNode node = ParseNode("<var-declaration>");
 
-    // Expect varsy
     node.children.push_back(expect(TokenType::VARSY));
-    // While masih deklarasi identifier list
-    while (true){
-        // [!] parseIdentifierList();
+    if (!match(TokenType::IDENT)){
+        error("unexpected token " + tokenToString(peek().type) + " in var-declaration");
+    }
+
+    while (match(TokenType::IDENT)){
         node.children.push_back(parseIdentifierList());
-        // Expect colon
         node.children.push_back(expect(TokenType::COLON));
-        // [!] parseType()
         node.children.push_back(parseType());
-        // Expect semicolon
         node.children.push_back(expect(TokenType::SEMICOLON));
     }
+
+    return node;
 }
 ParseNode Parser::parseSubprogramDeclaration(){
     // procedure-declaration | function-declaration
-    // While masih deklarasi procedure or function
-    while (true){
-        
+    ParseNode node = ParseNode("<subprogram-declaration>");
+
+    if (match(TokenType::PROCEDURESY)){
+        node.children.push_back(parseProcedureDeclaration());
+    } else if (match(TokenType::FUNCTIONSY)){
+        node.children.push_back(parseFunctionDeclaration());
+    } else {
+        error("unexpected token " + tokenToString(peek().type) + " in subprogram-declaration");
     }
+
+    return node;
 }
 ParseNode Parser::parseProcedureDeclaration(){
     // proceduresy + ident + (formal-parameter-list)? + semicolon + block + semicolon
@@ -86,10 +95,14 @@ ParseNode Parser::parseProcedureDeclaration(){
 
     node.children.push_back(expect(TokenType::PROCEDURESY));
     node.children.push_back(expect(TokenType::IDENT));
-    // Formal Parameter List    
+    if (match(TokenType::LPARENT)){
+        node.children.push_back(parseFormalParameterList());
+    }
     node.children.push_back(expect(TokenType::SEMICOLON));
     node.children.push_back(parseBlock());
     node.children.push_back(expect(TokenType::SEMICOLON));
+
+    return node;
 }
 ParseNode Parser::parseFunctionDeclaration(){
     // functionsy + ident + (formal-parameter-list)? + colon + ident + semicolon+ block + semicolon
@@ -97,16 +110,44 @@ ParseNode Parser::parseFunctionDeclaration(){
 
     node.children.push_back(expect(TokenType::FUNCTIONSY));
     node.children.push_back(expect(TokenType::IDENT));
-    // Formal Parameter List    
+    if (match(TokenType::LPARENT)){
+        node.children.push_back(parseFormalParameterList());
+    }
     node.children.push_back(expect(TokenType::COLON));
     node.children.push_back(expect(TokenType::IDENT));
     node.children.push_back(expect(TokenType::SEMICOLON));
     node.children.push_back(parseBlock());
     node.children.push_back(expect(TokenType::SEMICOLON));
+
+    return node;
 }
 ParseNode Parser::parseFormalParameterList(){
     // lparent + parameter-group + (semicolon + parameter-group)* + rparent
+    ParseNode node = ParseNode("<formal-parameter-list>");
+
+    node.children.push_back(expect(TokenType::LPARENT));
+    node.children.push_back(parseParameterGroup());
+    while (match(TokenType::SEMICOLON)){
+        node.children.push_back(expect(TokenType::SEMICOLON));
+        node.children.push_back(parseParameterGroup());
+    }
+    node.children.push_back(expect(TokenType::RPARENT));
+
+    return node;
 }
 ParseNode Parser::parseParameterGroup(){
     // identifier-list + colon + (ident | array-type)
+    ParseNode node = ParseNode("<parameter-group>");
+
+    node.children.push_back(parseIdentifierList());
+    node.children.push_back(expect(TokenType::COLON));
+    if (match(TokenType::IDENT)){
+        node.children.push_back(expect(TokenType::IDENT));
+    } else if (match(TokenType::ARRAYSY)){
+        node.children.push_back(parseArrayType());
+    } else {
+        error("unexpected token " + tokenToString(peek().type) + " in parameter-group");
+    }
+
+    return node;
 }
