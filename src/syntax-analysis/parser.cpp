@@ -78,3 +78,14 @@ ParseNode Parser::testDummyTree() {
 
     return root;
 }
+
+
+// Fungsi yang akan dipanggil di main
+ParseNode Parser::parse(){
+    ParseNode result = ParseNode("<Program>");
+    result.children.push_back(parseProgramHeader());
+    result.children.push_back(parseDeclarationPart());
+    result.children.push_back(parseCompoundStatement());
+    // Terakhir: Period
+    // result.children.push_back(expect(TokenType(PERIOD)));
+}
