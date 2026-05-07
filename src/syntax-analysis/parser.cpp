@@ -4,7 +4,13 @@
 
 using namespace std;
 
-Parser::Parser(const vector<Token>& tokenList) : tokens(tokenList), pos(0) {}
+Parser::Parser(const vector<Token>& tokenList) : pos(0) {
+    for (const Token& token : tokenList) {
+        if (token.type != TokenType::COMMENT) {
+            tokens.push_back(token);
+        }
+    }
+}
 
 Token Parser::peek() const {
     if (pos < (int)tokens.size()) {
