@@ -36,40 +36,64 @@ test/           File input dan output pengujian
 
 ### Build
 
-(bash)
+```bash
 make clean           
 make       
-
+```
 
 ### Penggunaan Lexical + Syntax Analyzer
 
 Program utama hasil build adalah `bin/arion`.
 
-## Mode interaktif:
-(bash)
+#### Mode Interaktif
+
+```bash
 make run
+```
 
 Program akan menanyakan:
 - Mode yang ingin dijalankan: lexical, syntax, atau keduanya
 - File input
 - File output lexical atau syntax jika ingin disimpan ke file
 
-## Mode command:
-(bash)
+Pada mode interaktif, nama file cukup ditulis relatif terhadap folder yang diminta program:
+- Mode lexical memakai folder `test/milestone-1/`
+- Mode syntax memakai folder `test/milestone-2/`
+- Mode keduanya memakai input source dari `test/milestone-1/`, output lexical ke `test/milestone-1/`, dan output syntax ke `test/milestone-2/`
+
+#### Mode Command
+
+```bash
 make run FILE=<source_file_path>
 make run FILE=<source_file_path> LEXOUT=<lexical_output_file_name>
 make run FILE=<source_file_path> LEXOUT=<lexical_output_file_name> SYNOUT=<syntax_output_file_name>
+```
+
+Pada mode command:
+- `FILE` adalah path source file yang akan dibaca lexer.
+- `LEXOUT` adalah nama file output lexical dan akan disimpan ke `test/milestone-1/`.
+- `SYNOUT` adalah nama file output syntax dan akan disimpan ke `test/milestone-2/`.
 
 Contoh:
-(bash)
+```bash
 make run FILE=test/milestone-1/input-1.txt
 make run FILE=test/milestone-1/input-1.txt LEXOUT=lexical-output-1.txt
 make run FILE=test/milestone-1/input-1.txt LEXOUT=lexical-output-1.txt SYNOUT=syntax-output-1.txt
+```
+
+Contoh di atas akan menyimpan:
+- Token lexical ke `test/milestone-1/lexical-output-1.txt`
+- Parse tree syntax ke `test/milestone-2/syntax-output-1.txt`
 
 Atau jalankan binary langsung:
-(bash)
+```bash
 ./bin/arion test/milestone-1/input-1.txt
 ./bin/arion test/milestone-1/input-1.txt lexical-output-1.txt syntax-output-1.txt
+```
+
+Binary langsung mengikuti aturan yang sama untuk output:
+- Argumen kedua disimpan sebagai output lexical di `test/milestone-1/`
+- Argumen ketiga disimpan sebagai output syntax di `test/milestone-2/`
 
 Jika file output belum ada, program akan membuat file tersebut. Jika file output sudah ada, isi file akan ditimpa.
 
@@ -77,11 +101,12 @@ Jika file output belum ada, program akan membuat file tersebut. Jika file output
 
 Syntax analyzer dapat membaca file hasil lexical analyzer dengan format:
 
-(text)
+```text
 programsy
 ident(Hello)
 semicolon
 unknown(.23.e-+/1.e-+/1)
+```
 
 Token `comment(...)` akan diabaikan oleh parser. Token `unknown(...)` tetap diproses sebagai token tidak dikenal dan dapat menghasilkan syntax error.
 
