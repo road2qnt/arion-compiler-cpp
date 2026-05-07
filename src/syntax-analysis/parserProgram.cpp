@@ -1,5 +1,6 @@
 #include "parser.hpp"
 
+// Parse header program: keyword program, nama, dan semicolon.
 ParseNode Parser::parseProgramHeader(){
     ParseNode node = ParseNode("<Program-header>");
     node.children.push_back(expect(TokenType::PROGRAMSY));
@@ -8,6 +9,7 @@ ParseNode Parser::parseProgramHeader(){
     return node;
 }
 
+// Parse block yang berisi declaration-part dan compound-statement.
 ParseNode Parser::parseBlock(){
     // declaration-part + compound-statement
     ParseNode node = ParseNode("<Block>");

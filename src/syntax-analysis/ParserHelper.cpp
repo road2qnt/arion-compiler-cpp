@@ -1,6 +1,7 @@
 #include "parser.hpp"
 
 namespace {
+    // Cek apakah token dapat menjadi awal index array.
     bool isIndexStart(TokenType type){
         return type == TokenType::INTCON ||
                type == TokenType::CHARCON ||
@@ -8,6 +9,7 @@ namespace {
     }
 }
 
+// Parse daftar identifier yang dipisahkan koma.
 ParseNode Parser::parseIdentifierList(){
     // ident (comma + ident)*
     ParseNode node = ParseNode("<identifier-list>");
@@ -20,6 +22,7 @@ ParseNode Parser::parseIdentifierList(){
 
     return node;
 }
+// Parse konstanta literal atau identifier bertanda plus/minus opsional.
 ParseNode Parser::parseConstant(){
     // charcon | string | [(plus | minus)? + (ident | intcon | realcon)]
     ParseNode node = ParseNode("<constant>");
@@ -48,6 +51,7 @@ ParseNode Parser::parseConstant(){
 
     return node;
 }
+// Parse satu atau lebih index array.
 ParseNode Parser::parseIndexList(){
     //  (intcon | charcon | ident ) + ( comma + index-list )*
     ParseNode node = ParseNode("<index-list>");
@@ -79,6 +83,7 @@ ParseNode Parser::parseIndexList(){
 
     return node;
 }
+// Parse operator perbandingan.
 ParseNode Parser::parseRelationalOperator(){
     // eql | neq | gtr | geq | lss | leq
     ParseNode node = ParseNode("<relational-operator>");
@@ -101,6 +106,7 @@ ParseNode Parser::parseRelationalOperator(){
 
     return node;
 }
+// Parse operator penjumlahan, pengurangan, atau or.
 ParseNode Parser::parseAdditiveOperator(){
     // plus | minus | orsy
     ParseNode node = ParseNode("<additive-operator>");
@@ -117,6 +123,7 @@ ParseNode Parser::parseAdditiveOperator(){
 
     return node;
 }
+// Parse operator perkalian, pembagian, mod, atau and.
 ParseNode Parser::parseMultiplicativeOperator(){
     // times | rdiv | idiv | imod | andsy
     ParseNode node = ParseNode("<multiplicative-operator>");

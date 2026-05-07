@@ -6,6 +6,7 @@
 #include <fstream>
 #include <string>
 
+// Fungsi untuk mencetak tree
 inline void printTreeHelper(std::ostream& os, const ParseNode& node, const std::string& prefix, bool isLast, bool isRoot) {
     if (isRoot) {
         os << node.label << "\n";
@@ -23,6 +24,7 @@ inline void printTreeHelper(std::ostream& os, const ParseNode& node, const std::
     }
 }
 
+// Fungsi utama yang memanggil fungsi pencetakan tree
 inline void printTree(std::ostream& os, const ParseNode& root) {
     printTreeHelper(os, root, "", true, true);
 }

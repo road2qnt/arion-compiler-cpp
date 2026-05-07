@@ -1,6 +1,7 @@
 #include "parser.hpp"
 
 namespace {
+    // Cek token yang boleh mengakhiri statement kosong.
     bool isStatementFollow(TokenType type){
         return type == TokenType::SEMICOLON ||
                type == TokenType::ENDSY ||
@@ -9,6 +10,7 @@ namespace {
                type == TokenType::PERIOD;
     }
 
+    // Cek apakah token dapat menjadi awal constant pada case-block.
     bool isConstantStart(TokenType type){
         return type == TokenType::CHARCON ||
                type == TokenType::STRING ||
@@ -20,6 +22,7 @@ namespace {
     }
 }
 
+// Parse block statement yang diawali begin dan diakhiri end.
 ParseNode Parser::parseCompoundStatement(){
     // beginsy + statement-list + endsy
     ParseNode node = ParseNode("<compound-statement>");
@@ -30,6 +33,7 @@ ParseNode Parser::parseCompoundStatement(){
 
     return node;
 }
+// Parse daftar statement yang dipisahkan semicolon.
 ParseNode Parser::parseStatementList(){
     // statement (semicolon + statement)*
     ParseNode node = ParseNode("<statement-list>");
@@ -43,6 +47,7 @@ ParseNode Parser::parseStatementList(){
 
     return node;
 }
+// Parse satu statement atau statement kosong.
 ParseNode Parser::parseStatement(){
     /* (assignment-statement | if-statement | case-statement |while-statement |repeat-statement | for-statement | procedure/function-call )?*/
     ParseNode node = ParseNode("<statement>");
@@ -82,6 +87,7 @@ ParseNode Parser::parseStatement(){
 
     return node;
 }
+// Parse assignment ke variable.
 ParseNode Parser::parseAssignmentStatement(){
     // variable + becomes + expression
     ParseNode node = ParseNode("<assignment-statement>");
@@ -92,6 +98,7 @@ ParseNode Parser::parseAssignmentStatement(){
 
     return node;
 }
+// Parse statement percabangan if-then-else.
 ParseNode Parser::parseIfStatement(){
     // ifsy + expression + thensy + statement + (elsy + statement)?
     ParseNode node = ParseNode("<if-statement>");
@@ -107,6 +114,7 @@ ParseNode Parser::parseIfStatement(){
 
     return node;
 }
+// Parse statement case-of.
 ParseNode Parser::parseCaseStatement(){
     // casesy + expression + ofsy + case-block + endsy
     ParseNode node = ParseNode("<case-statement>");
@@ -119,6 +127,7 @@ ParseNode Parser::parseCaseStatement(){
 
     return node;
 }
+// Parse satu atau lebih cabang dalam case statement.
 ParseNode Parser::parseCaseBlock(){
     // constant + (comma + constant)* + colon + statement +  (semicolon + case-block?)* 
     ParseNode node = ParseNode("<case-block>");
@@ -140,6 +149,7 @@ ParseNode Parser::parseCaseBlock(){
 
     return node;
 }
+// Parse perulangan while-do.
 ParseNode Parser::parseWhileStatement(){
     // whilesy + expression + dosy + statement
     ParseNode node = ParseNode("<while-statement>");
@@ -151,6 +161,7 @@ ParseNode Parser::parseWhileStatement(){
 
     return node;
 }
+// Parse perulangan repeat-until.
 ParseNode Parser::parseRepeatStatement(){
     // repeatsy + statement-list + untilsy + expression
     ParseNode node = ParseNode("<repeat-statement>");
@@ -162,6 +173,7 @@ ParseNode Parser::parseRepeatStatement(){
 
     return node;
 }
+// Parse perulangan for-to/downto-do.
 ParseNode Parser::parseForStatement(){
     // forsy + ident + becomes + expression + ( tosy | downtosy) + expression + dosy + statement
     ParseNode node = ParseNode("<for-statement>");

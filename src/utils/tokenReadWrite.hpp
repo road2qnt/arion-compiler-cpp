@@ -10,8 +10,7 @@
 #include <algorithm>
 #include <cctype>
 
-// === Jika Baca dari File yang berisi TOKEN ===
-
+// === Fungsi untuk membaca dari File yang berisi TOKEN (hasil Lexical Analysis)===
 class TokenReadWrite{
 private:
     std::string pathFile;
@@ -135,6 +134,7 @@ public:
         this->pathFile = pathFile;
     }
 
+    // [!] Fungsi Utama untuk membaca file dan merubahnya menjadi vector of tokens
     std::vector<Token> parseToVector(){
         // Baca token dan parsing menjadi vector
         std::vector<Token> result;

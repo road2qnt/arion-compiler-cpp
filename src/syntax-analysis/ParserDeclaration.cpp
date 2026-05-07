@@ -1,5 +1,6 @@
 #include "parser.hpp"
 
+// Parse seluruh bagian deklarasi sebelum compound statement.
 ParseNode Parser::parseDeclarationPart(){
     ParseNode node = ParseNode("<declaration-part>");
 
@@ -19,7 +20,7 @@ ParseNode Parser::parseDeclarationPart(){
     return node;
 }
 
-
+// Parse deklarasi konstanta setelah keyword const.
 ParseNode Parser::parseConstDeclaration(){
     // constsy + (ident + eql + constant + semicolon)+
     ParseNode node = ParseNode("<const-declaration>");
@@ -39,6 +40,7 @@ ParseNode Parser::parseConstDeclaration(){
     return node;
 }
 
+// Parse deklarasi type alias, range, enum, array, atau record.
 ParseNode Parser::parseTypeDeclaration(){
     // typesy + (ident + eql + type + semicolon)+
     ParseNode node = ParseNode("<type-declaration>");
@@ -57,6 +59,7 @@ ParseNode Parser::parseTypeDeclaration(){
 
     return node;
 }
+// Parse deklarasi variabel beserta tipe datanya.
 ParseNode Parser::parseVarDeclaration(){
     // varsy + (identifier-list + colon + type + semicolon)+
     ParseNode node = ParseNode("<var-declaration>");
@@ -75,6 +78,7 @@ ParseNode Parser::parseVarDeclaration(){
 
     return node;
 }
+// Parse deklarasi subprogram, yaitu procedure atau function.
 ParseNode Parser::parseSubprogramDeclaration(){
     // procedure-declaration | function-declaration
     ParseNode node = ParseNode("<subprogram-declaration>");
@@ -89,6 +93,7 @@ ParseNode Parser::parseSubprogramDeclaration(){
 
     return node;
 }
+// Parse deklarasi procedure beserta parameter opsional dan block.
 ParseNode Parser::parseProcedureDeclaration(){
     // proceduresy + ident + (formal-parameter-list)? + semicolon + block + semicolon
     ParseNode node = ParseNode("<procedure-declaration>");
@@ -104,6 +109,7 @@ ParseNode Parser::parseProcedureDeclaration(){
 
     return node;
 }
+// Parse deklarasi function beserta return type dan block.
 ParseNode Parser::parseFunctionDeclaration(){
     // functionsy + ident + (formal-parameter-list)? + colon + ident + semicolon+ block + semicolon
     ParseNode node = ParseNode("<function-declaration>");
@@ -121,6 +127,7 @@ ParseNode Parser::parseFunctionDeclaration(){
 
     return node;
 }
+// Parse daftar parameter formal di dalam tanda kurung.
 ParseNode Parser::parseFormalParameterList(){
     // lparent + parameter-group + (semicolon + parameter-group)* + rparent
     ParseNode node = ParseNode("<formal-parameter-list>");
@@ -135,6 +142,7 @@ ParseNode Parser::parseFormalParameterList(){
 
     return node;
 }
+// Parse satu grup parameter dengan identifier-list dan tipe.
 ParseNode Parser::parseParameterGroup(){
     // identifier-list + colon + (ident | array-type)
     ParseNode node = ParseNode("<parameter-group>");

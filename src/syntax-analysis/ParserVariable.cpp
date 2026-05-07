@@ -1,5 +1,6 @@
 #include "parser.hpp"
 
+// Parse variable utama beserta akses array/field opsional.
 ParseNode Parser::parseVariable(){
     // ident + (component-variable)*
     ParseNode node = ParseNode("<variable>");
@@ -12,6 +13,7 @@ ParseNode Parser::parseVariable(){
     return node;
 }
 
+// Parse komponen variable berupa index array atau field record.
 ParseNode Parser::parseComponentVariable(){
     // (lbrack + index-list + rbrack) | (period + ident) 
     ParseNode node = ParseNode("<component-variable>");
