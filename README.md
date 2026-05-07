@@ -95,7 +95,7 @@ Token `comment(...)` akan diabaikan oleh parser. Token `unknown(...)` tetap dipr
 
 ### Pembagian Tugas
 
-## Milestone 1
+#### Milestone 1
 | Nama | Pembagian Tugas | Kontribusi |
 |------|----------------|------------|
 | Ega Luthfi Rais | Project Manager, Inisiasi GitHub, Design struktur GitHub, Assist Design dan Implementasi DFA | 25% |
@@ -103,7 +103,7 @@ Token `comment(...)` akan diabaikan oleh parser. Token `unknown(...)` tetap dipr
 | Ahmad Fauzan Putra | Implementasi DFA (token.hpp dan token.cpp), pengujian | 25% |
 | Leonardus Brain Fatolosja | Pembuatan DFA, Laporan (Teori singkat dan Penjelasan DFA) | 25% |
 
-## Milestone 2
+#### Milestone 2
 | Nama | Pembagian Tugas | Kontribusi |
 |------|----------------|------------|
 | Ega Luthfi Rais | Project Manager, Inisiasi GitHub, Design struktur gitHub, Assist Design dan Implementasi awal Recursive Descent | 25% |
