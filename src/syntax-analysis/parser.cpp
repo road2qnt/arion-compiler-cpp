@@ -32,7 +32,7 @@ Token Parser::peekAhead(int n) const {
 // Majukan posisi parser satu token.
 void Parser::advance() {
     if (pos < (int)tokens.size()) {
-        TRACE_MSG("Maju 1 token dari: " + tokenToLabel(tokens[pos]));
+        // TRACE_MSG("Maju 1 token dari: " + tokenToLabel(tokens[pos]));
         pos++;
     }
 }

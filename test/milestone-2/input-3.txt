@@ -8,8 +8,7 @@ colon
 ident(integer)
 semicolon
 beginsy
-comment((* ini komentar
-   bintang kurung *))
+comment((* ini komentar bintang kurung *))
 ident(a)
 becomes
 intcon(42)
