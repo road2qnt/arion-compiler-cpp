@@ -28,7 +28,7 @@
 │       ├── <identifier-list>
 │       │   └── ident(i)
 │       ├── colon
-│       ├── <type>
+│       ├── <type>  
 │       │   └── ident(integer)
 │       └── semicolon
 ├── <compound-statement>

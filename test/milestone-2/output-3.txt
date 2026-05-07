@@ -4,10 +4,28 @@
 │   ├── ident(Comments)
 │   └── semicolon
 ├── <declaration-part>
+│   └── <var-declaration>
+│       ├── varsy
+│       ├── <identifier-list>
+│       │   └── ident(a)
+│       ├── colon
+│       ├── <type>
+│       │   └── ident(integer)
+│       └── semicolon
 ├── <compound-statement>
-│   ├── error
+│   ├── beginsy
 │   ├── <statement-list>
+│   │   ├── <statement>
+│   │   │   └── <assignment-statement>
+│   │   │       ├── <variable>
+│   │   │       │   └── ident(a)
+│   │   │       ├── becomes
+│   │   │       └── <expression>
+│   │   │           └── <simple-expression>
+│   │   │               └── <term>
+│   │   │                   └── <factor>
+│   │   │                       └── intcon(42)
+│   │   ├── semicolon
 │   │   └── <statement>
-│   │       └── error
-│   └── error
-└── error
+│   └── endsy
+└── period
