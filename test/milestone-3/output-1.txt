@@ -1,0 +1,25 @@
+
+========== Decorated AST ==========
+Program: unnamed [tab=11]
+  Declarations:
+
+=== Symbol Table (tab) ===
+Idx  Name           Kind      Type    Lev   Address Link  
+------------------------------------------------------------
+0    integer        type      integer 0     0       -1    
+1    real           type      real    0     0       0     
+2    boolean        type      boolean 0     0       1     
+3    char           type      char    0     0       2     
+4    true           constant  boolean 0     1       3     
+5    false          constant  boolean 0     0       4     
+6    maxint         constant  integer 0     32767   5     
+7    writeln        procedure void    0     0       6     
+8    readln         procedure void    0     0       7     
+9    write          procedure void    0     0       8     
+10   read           procedure void    0     0       9     
+11   unnamed        procedure void    0     0       10    
+
+=== Block Table (btab) ===
+Idx  Last    LPar    PSize   VSize   
+----------------------------------------
+0    11      -1      0       0       

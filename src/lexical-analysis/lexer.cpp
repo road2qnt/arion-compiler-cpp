@@ -21,8 +21,6 @@ bool Lexer::transisiFirstSymbol(char c){
     }
     return false;
 }
-// Membaca file karakter per karakter dan menjalankan DFA.
-// char_processed mengontrol apakah karakter saat ini sudah dikonsumsi.
 void Lexer::DFA(const string& filename) {
     ifstream file(filename);
     if (!file.is_open()){

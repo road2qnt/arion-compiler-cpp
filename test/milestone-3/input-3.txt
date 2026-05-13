@@ -1,0 +1,6 @@
+program Undeclared;
+var
+    x : integer;
+begin
+    y := 10
+end.

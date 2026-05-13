@@ -1,14 +1,12 @@
 #include "parser.hpp"
 
 namespace {
-    // Cek token yang dapat menjadi nilai constant tanpa char/string.
     bool isConstantValueStart(TokenType type){
         return type == TokenType::IDENT ||
                type == TokenType::INTCON ||
                type == TokenType::REALCON;
     }
 
-    // Cek token yang dapat menjadi awal constant.
     bool isConstantStart(TokenType type){
         return type == TokenType::CHARCON ||
                type == TokenType::STRING ||
@@ -18,7 +16,6 @@ namespace {
     }
 }
 
-// Parse type Arion: ident, array, range, enumerated, atau record.
 ParseNode Parser::parseType(){
     /* ident |
     array-type |
@@ -65,7 +62,6 @@ ParseNode Parser::parseType(){
 
     return node;
 }
-// Parse definisi tipe array.
 ParseNode Parser::parseArrayType(){
     // arraysy + lbrack + (range | ident) + rbrack + ofsy + type
     ParseNode node = ParseNode("<array-type>");
@@ -103,7 +99,6 @@ ParseNode Parser::parseArrayType(){
 
     return node;
 }
-// Parse range nilai seperti 1..10.
 ParseNode Parser::parseRange(){
     // constant + period + period + constant
     ParseNode node = ParseNode("<range>");
@@ -115,7 +110,6 @@ ParseNode Parser::parseRange(){
 
     return node;
 }
-// Parse enumerated type seperti (Jan, Feb, Mar).
 ParseNode Parser::parseEnumerated(){
     // lparent + ident + (comma + ident)* + rparent
     ParseNode node = ParseNode("<enumerated>");
@@ -130,7 +124,6 @@ ParseNode Parser::parseEnumerated(){
 
     return node;
 }
-// Parse tipe record beserta field list.
 ParseNode Parser::parseRecordType(){
     // recordsy + field-list + endsy
     ParseNode node = ParseNode("<record-type>");
@@ -141,7 +134,6 @@ ParseNode Parser::parseRecordType(){
 
     return node;
 }
-// Parse daftar field pada record.
 ParseNode Parser::parseFieldList(){
     // field-part + (semicolon + field-part)*
     ParseNode node = ParseNode("<field-list>");
@@ -154,7 +146,6 @@ ParseNode Parser::parseFieldList(){
 
     return node;
 }   
-// Parse satu bagian field record.
 ParseNode Parser::parseFieldPart(){
     // identifier-list + colon + type
     ParseNode node = ParseNode("<field-part>");

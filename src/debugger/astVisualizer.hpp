@@ -37,7 +37,7 @@ public:
     void generateDotFile(const ParseNode& root, const std::string& filename) {
         std::ofstream outFile(filename);
         if (!outFile.is_open()) {
-            std::cerr << "[DEBUG] Gagal membuat file dot untuk visualisasi AST: " << filename << std::endl;
+            std::cerr << "[DEBUG] Error creating DOT file: " << filename << std::endl;
             return;
         }
 
@@ -48,9 +48,9 @@ public:
         outFile << "}\n";
         outFile.close();
         
-        std::cout << "\n[DEBUG] AST berhasil diekspor ke format Graphviz: " << filename << std::endl;
-        std::cout << "[DEBUG] Gunakan web https://dreampuf.github.io/GraphvizOnline/ untuk render gambarnya." << std::endl;
-        std::cout << "[DEBUG] Atau run command: dot -Tpng " << filename << " -o tree.png\n" << std::endl;
+        std::cout << "\n[DEBUG] AST exported to Graphviz format: " << filename << std::endl;
+        std::cout << "[DEBUG] Use https://dreampuf.github.io/GraphvizOnline/ to render." << std::endl;
+        std::cout << "[DEBUG] Or run: dot -Tpng " << filename << " -o tree.png\n" << std::endl;
     }
 };
 

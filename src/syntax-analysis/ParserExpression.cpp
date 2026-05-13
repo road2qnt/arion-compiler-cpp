@@ -1,7 +1,6 @@
 #include "parser.hpp"
 
 namespace {
-    // Cek apakah token saat ini adalah operator relasional.
     bool isRelationalOperator(TokenType type){
         return type == TokenType::EQL ||
                type == TokenType::NEQ ||
@@ -11,14 +10,12 @@ namespace {
                type == TokenType::LEQ;
     }
 
-    // Cek apakah token saat ini adalah operator aditif.
     bool isAdditiveOperator(TokenType type){
         return type == TokenType::PLUS ||
                type == TokenType::MINUS ||
                type == TokenType::ORSY;
     }
 
-    // Cek apakah token saat ini adalah operator multiplikatif.
     bool isMultiplicativeOperator(TokenType type){
         return type == TokenType::TIMES ||
                type == TokenType::RDIV ||
@@ -27,7 +24,6 @@ namespace {
                type == TokenType::ANDSY;
     }
 
-    // Cek apakah token dapat menjadi awal expression.
     bool isExpressionStart(TokenType type){
         return type == TokenType::IDENT ||
                type == TokenType::INTCON ||
@@ -41,7 +37,6 @@ namespace {
     }
 }
 
-// Parse expression lengkap dengan operator relasional opsional.
 ParseNode Parser::parseExpression(){
     // simple-expression (relational-operator + simple-expression)?
     ParseNode node = ParseNode("<expression>");
@@ -54,7 +49,6 @@ ParseNode Parser::parseExpression(){
 
     return node;
 }
-// Parse expression tanpa operator relasional.
 ParseNode Parser::parseSimpleExpression(){
     // (plus | minus)? term (additive-operator + term)*
     ParseNode node = ParseNode("<simple-expression>");
@@ -73,7 +67,6 @@ ParseNode Parser::parseSimpleExpression(){
 
     return node;
 }
-// Parse term untuk operator dengan prioritas perkalian/pembagian.
 ParseNode Parser::parseTerm(){
     // factor (multiplicative-operator + factor)*
     ParseNode node = ParseNode("<term>");
@@ -86,7 +79,6 @@ ParseNode Parser::parseTerm(){
 
     return node;
 }
-// Parse unit terkecil dalam expression.
 ParseNode Parser::parseFactor(){
     // ident | intcon | realcon | charcon | string | (lparent + expression + rparent) | (notsy + factor) | procedure/function-call | variable
     ParseNode node = ParseNode("<factor>");
@@ -118,7 +110,6 @@ ParseNode Parser::parseFactor(){
 
     return node;
 }
-// Parse pemanggilan procedure/function dengan parameter opsional.
 ParseNode Parser::parseProcedureFunctionCall(){
     // ident + (lparent + parameter-list? + rparent)
     ParseNode node = ParseNode("<procedure-function-call>");
@@ -132,7 +123,6 @@ ParseNode Parser::parseProcedureFunctionCall(){
 
     return node;
 }
-// Parse daftar parameter aktual saat pemanggilan.
 ParseNode Parser::parseParameterList(){
     // expression (comma + expression)*
     ParseNode node = ParseNode("<parameter-list>");

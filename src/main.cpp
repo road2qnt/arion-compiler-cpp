@@ -24,22 +24,4 @@ int main(int argc, char* argv[]) {
 
     return runCommandMode(argc, argv);
 
-    /* [debugger]
-    dumpTokens(tokens);
-    */
-
-    /*
-    // CHECKPOINT TEST
-    cout << "--- Phase 1: Dummy Tree Test ---" << endl;
-    Parser parser(tokens);
-    ParseNode dummyRoot = parser.testDummyTree();
-    printTree(cout, dummyRoot);
-    if (out != &cout) {
-        printTree(*out, dummyRoot);
-    }
-    cout << "--------------------------------" << endl;
-
-    ASTVisualizer visualizer;
-    visualizer.generateDotFile(dummyRoot, "dummy_tree.dot");
-    */
 }

@@ -8,22 +8,18 @@
 #include "writeFile.hpp"
 #include "tokenReadWrite.hpp"
 
-// === Fungsi Helper ===
 
-// Menjalankan Lexical Analysis
 vector<Token> runLexicalAnalysis(const string& filename) {
     Lexer lexer;
     lexer.DFA(filename);
     return lexer.getTokens();
 }
 
-// Menjalankan Syntax Analysis 
 ParseNode runSyntaxAnalysis(const vector<Token>& tokens) {
     Parser parser(tokens);
     return parser.parse();
 }
 
-// Mencetak hasil Lexical Analysis ke File dan/atau terminal.
 bool outputLexicalAnalysis(const vector<Token>& tokens, const string& outputPath = "") {
     printLexicalAnalysis(cout, tokens);
     if (!outputPath.empty()) {
@@ -32,7 +28,6 @@ bool outputLexicalAnalysis(const vector<Token>& tokens, const string& outputPath
     return true;
 }
 
-// Mencetak hasil Syntax Analysis ke File dan/atau terminal.
 bool outputSyntaxAnalysis(const ParseNode& root, const string& outputPath = "") {
     printTree(cout, root);
     if (!outputPath.empty()) {
@@ -41,7 +36,6 @@ bool outputSyntaxAnalysis(const ParseNode& root, const string& outputPath = "") 
     return true;
 }
 
-// [Helper] Fungsi untuk menerima sebuah input dibarengi dengan print pertanyaan
 string askLine(const string& prompt) {
     string input;
     cout << prompt;
@@ -49,23 +43,19 @@ string askLine(const string& prompt) {
     return input;
 }
 
-// [Helper] Command yang menandakan user memilih lexical
 bool isLexicalChoice(const string& choice) {
     return choice == "1" || choice == "lexical" || choice == "Lexical" || choice == "LEXICAL";
 }
 
-// [Helper] Command yang menandakan user memilih syntax
 bool isSyntaxChoice(const string& choice) {
     return choice == "2" || choice == "syntax" || choice == "Syntax" || choice == "SYNTAX";
 }
 
-// [Helper] Command yang menandakan user memilih keduanya (syntax + lexical)
 bool isBothChoice(const string& choice) {
     return choice == "3" || choice == "keduanya" || choice == "Keduanya" ||
            choice == "both" || choice == "Both" || choice == "BOTH";
 }
 
-// Fungsi untuk handle menu interaktif di CLI. (Aktif Jika User menjalankan program dengan "make run" saja!)
 int runInteractiveMode() {
     cout << "Pilih mode:" << endl;
     cout << "1. lexical" << endl;

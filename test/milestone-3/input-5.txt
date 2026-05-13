@@ -1,0 +1,7 @@
+program IfCondition;
+var
+    x : integer;
+begin
+    if x then
+        x := 1
+end.

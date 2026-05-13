@@ -4,7 +4,6 @@
 
 using namespace std;
 
-// Inisialisasi parser dan buang token comment dari input.
 Parser::Parser(const vector<Token>& tokenList) : pos(0) {
     for (const Token& token : tokenList) {
         if (token.type != TokenType::COMMENT) {
@@ -13,7 +12,6 @@ Parser::Parser(const vector<Token>& tokenList) : pos(0) {
     }
 }
 
-// Ambil token saat ini tanpa memajukan posisi.
 Token Parser::peek() const {
     if (pos < (int)tokens.size()) {
         return tokens[pos];
@@ -21,7 +19,6 @@ Token Parser::peek() const {
     return Token(TokenType::ERROR, "EOF");
 }
 
-// Ambil token beberapa posisi setelah token saat ini.
 Token Parser::peekAhead(int n) const {
     if (pos + n < (int)tokens.size()) {
         return tokens[pos + n];
@@ -29,7 +26,6 @@ Token Parser::peekAhead(int n) const {
     return Token(TokenType::ERROR, "EOF");
 }
 
-// Majukan posisi parser satu token.
 void Parser::advance() {
     if (pos < (int)tokens.size()) {
         // TRACE_MSG("Maju 1 token dari: " + tokenToLabel(tokens[pos]));
@@ -37,12 +33,10 @@ void Parser::advance() {
     }
 }
 
-// Cek apakah token saat ini sesuai tipe tertentu.
 bool Parser::match(TokenType type) const {
     return peek().type == type;
 }
 
-// Konsumsi token yang diharapkan atau buat node error.
 ParseNode Parser::expect(TokenType type) {
     if (match(type)) {
         ParseNode node(tokenToLabel(peek()),true);
@@ -55,13 +49,11 @@ ParseNode Parser::expect(TokenType type) {
     }
 }
 
-// Cetak syntax error dan kembalikan node error.
 ParseNode Parser::error(const string& msg) const {
     cout << "Syntax error: " << msg << endl;
     return ParseNode("error", true);
 }
 
-// Ubah token menjadi label terminal parse tree.
 string Parser::tokenToLabel(const Token& t) const {
     string typeStr = tokenToString(t.type);
     if (!t.value.empty()) {
@@ -70,8 +62,6 @@ string Parser::tokenToLabel(const Token& t) const {
     return typeStr;
 }
 
-// Fungsi yang akan dipanggil di main
-// Parse keseluruhan program sebagai root parse tree.
 ParseNode Parser::parse(){
     ParseNode result = ParseNode("<Program>");
     result.children.push_back(parseProgramHeader());
@@ -80,11 +70,7 @@ ParseNode Parser::parse(){
     result.children.push_back(expect(TokenType::PERIOD));
 
     return result;
-}      
-
-
-// === Bukan Bagian dari Program ===
-// Membuat dummy tree untuk kebutuhan debugging visualizer.
+}
 ParseNode Parser::testDummyTree() {
     TRACE(); // CONTOH PENGGUNAAN TRACE (DEBUGGER)
     

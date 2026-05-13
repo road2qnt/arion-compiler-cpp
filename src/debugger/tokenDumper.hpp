@@ -6,7 +6,7 @@
 #include <iostream>
 
 inline void dumpTokens(const std::vector<Token>& tokens) {
-    std::cout << "\n--- Token Dump Debugger ---" << std::endl;
+    std::cout << "\n--- Token Dump ---" << std::endl;
     for (size_t i = 0; i < tokens.size(); ++i) {
         std::cout << "[" << i << "] " << tokenToString(tokens[i].type);
         if (!tokens[i].value.empty()) {
@@ -14,7 +14,7 @@ inline void dumpTokens(const std::vector<Token>& tokens) {
         }
         std::cout << " @ line " << tokens[i].line << std::endl;
     }
-    std::cout << "---------------------------\n" << std::endl;
+    std::cout << "------------------\n" << std::endl;
 }
 
 #endif
