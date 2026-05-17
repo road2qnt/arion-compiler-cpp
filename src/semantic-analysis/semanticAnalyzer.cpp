@@ -2,8 +2,31 @@
 #include <sstream>
 #include <algorithm>
 
+static std::string mapOpToken(const std::string& token) {
+    if (token == "plus") return "+";
+    if (token == "minus") return "-";
+    if (token == "times") return "*";
+    if (token == "rdiv") return "/";
+    if (token == "idiv") return "div";
+    if (token == "imod") return "mod";
+    if (token == "andsy") return "and";
+    if (token == "orsy") return "or";
+    if (token == "notsy") return "not";
+    if (token == "eql") return "=";
+    if (token == "neq") return "<>";
+    if (token == "lss") return "<";
+    if (token == "leq") return "<=";
+    if (token == "gtr") return ">";
+    if (token == "geq") return ">=";
+    return token;
+}
+
 SemanticAnalyzer::SemanticAnalyzer()
     : typeChecker(symTab), astRoot(nullptr), tokens(nullptr) {}
+
+SemanticAnalyzer::~SemanticAnalyzer() {
+    delete astRoot;
+}
 
 ProgramNode* SemanticAnalyzer::analyze(const ParseNode& parseTree, const std::vector<Token>& tok) {
     tokens = &tok;
@@ -94,7 +117,7 @@ std::vector<DeclNode*> SemanticAnalyzer::convertVarDecls(const ParseNode& node) 
         if (node.children[i].label == "<identifier-list>") {
             std::vector<std::string> names;
             for (const auto& child : node.children[i].children) {
-                if (child.isTerminal) {
+                if (child.isTerminal && child.label.rfind("ident", 0) == 0) {
                     std::string name = getTokenValue(child);
                     if (!name.empty()) {
                         names.push_back(name);
@@ -325,13 +348,6 @@ ASTNode* SemanticAnalyzer::convertStatementList(const ParseNode& node) {
         return nullptr;
     }
 
-    if (block->statements.size() == 1) {
-        ASTNode* onlyStmt = block->statements[0];
-        block->statements.clear();
-        delete block;
-        return onlyStmt;
-    }
-
     return block;
 }
 
@@ -508,7 +524,7 @@ ASTNode* SemanticAnalyzer::convertExpression(const ParseNode& node) {
         std::string op;
         const ParseNode& opNode = node.children[1];
         if (!opNode.children.empty() && opNode.children[0].isTerminal) {
-            op = opNode.children[0].label;
+            op = mapOpToken(opNode.children[0].label);
         }
 
         BinOpNode* binOp = new BinOpNode(op);
@@ -540,7 +556,7 @@ ASTNode* SemanticAnalyzer::convertSimpleExpression(const ParseNode& node) {
     if (!result) return nullptr;
 
     if (hasUnary && (unaryOp == "minus")) {
-        UnaryOpNode* unary = new UnaryOpNode("-");
+        UnaryOpNode* unary = new UnaryOpNode(mapOpToken(unaryOp));
         unary->operand = result;
         result = unary;
     }
@@ -549,7 +565,7 @@ ASTNode* SemanticAnalyzer::convertSimpleExpression(const ParseNode& node) {
         if (node.children[i].label == "<additive-operator>") {
             std::string op;
             if (!node.children[i].children.empty() && node.children[i].children[0].isTerminal) {
-                op = node.children[i].children[0].label;
+                op = mapOpToken(node.children[i].children[0].label);
             }
 
             if (i + 1 < node.children.size()) {
@@ -576,7 +592,7 @@ ASTNode* SemanticAnalyzer::convertTerm(const ParseNode& node) {
         if (node.children[i].label == "<multiplicative-operator>") {
             std::string op;
             if (!node.children[i].children.empty() && node.children[i].children[0].isTerminal) {
-                op = node.children[i].children[0].label;
+                op = mapOpToken(node.children[i].children[0].label);
             }
 
             if (i + 1 < node.children.size()) {
@@ -625,7 +641,7 @@ ASTNode* SemanticAnalyzer::convertFactor(const ParseNode& node) {
     }
 
     if (inner.isTerminal && inner.label == "notsy") {
-        UnaryOpNode* notNode = new UnaryOpNode("not");
+        UnaryOpNode* notNode = new UnaryOpNode(mapOpToken(inner.label));
         if (node.children.size() > 1) {
             notNode->operand = convertFactor(node.children[1]);
         }

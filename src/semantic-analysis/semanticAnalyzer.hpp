@@ -13,6 +13,7 @@
 class SemanticAnalyzer {
 public:
     SemanticAnalyzer();
+    ~SemanticAnalyzer();
 
     // Main entry point: convert parse tree -> AST -> decorate
     ProgramNode* analyze(const ParseNode& parseTree, const std::vector<Token>& tokens);
