@@ -17,8 +17,8 @@ int main(int argc, char* argv[]) {
         return runInteractiveMode();
     }
 
-    if (argc > 4) {
-        cout << "Usage: " << argv[0] << " [source_file] [lexical_output_file] [syntax_output_file]" << endl;
+    if (argc > 5) {
+        cout << "Usage: " << argv[0] << " [source_file] [lexical_output_file] [syntax_output_file] [semantic_output_file]" << endl;
         return 1;
     }
 

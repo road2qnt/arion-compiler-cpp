@@ -4,6 +4,7 @@
 #include <iostream>
 #include <fstream>
 #include "../lexical-analysis/lexer.hpp"
+#include "../semantic-analysis/semanticAnalyzer.hpp"
 #include "printTree.hpp"
 
 void printLexicalAnalysis(ostream& out, const vector<Token>& tokens) {
@@ -35,6 +36,21 @@ bool printSyntaxAnalysisToFile(const string& outputPath, const ParseNode& root) 
     }
 
     printTree(outFile, root);
+    return true;
+}
+
+void printSemanticAnalysis(ostream& out, const SemanticAnalyzer& analyzer) {
+    analyzer.printResults(out);
+}
+
+bool printSemanticAnalysisToFile(const string& outputPath, const SemanticAnalyzer& analyzer) {
+    ofstream outFile(outputPath);
+    if (!outFile.is_open()) {
+        cout << "[!] File output semantic tidak bisa dibuka." << endl;
+        return false;
+    }
+
+    printSemanticAnalysis(outFile, analyzer);
     return true;
 }
 

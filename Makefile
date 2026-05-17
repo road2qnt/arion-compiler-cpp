@@ -10,7 +10,8 @@ TARGET := $(BIN_DIR)/arion
 SRC_DIRS := \
 	$(SRC_DIR) \
 	$(SRC_DIR)/lexical-analysis \
-	$(SRC_DIR)/syntax-analysis
+	$(SRC_DIR)/syntax-analysis \
+	$(SRC_DIR)/semantic-analysis
 
 SRCS := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(BIN_DIR)/%.o,$(SRCS))
@@ -27,7 +28,7 @@ $(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) -c $< -o $@
 
 run: $(TARGET)
-	./$(TARGET) $(FILE) $(LEXOUT) $(SYNOUT)
+	./$(TARGET) $(FILE) $(LEXOUT) $(SYNOUT) $(SEMOUT)
 
 clean:
 	rm -rf $(BIN_DIR)

@@ -4,6 +4,7 @@
 #include "../lexical-analysis/lexer.hpp"
 #include "../lexical-analysis/token.hpp"
 #include "../syntax-analysis/parser.hpp"
+#include "../semantic-analysis/semanticAnalyzer.hpp"
 #include "printTree.hpp"
 #include "writeFile.hpp"
 #include "tokenReadWrite.hpp"
@@ -20,6 +21,10 @@ ParseNode runSyntaxAnalysis(const vector<Token>& tokens) {
     return parser.parse();
 }
 
+void runSemanticAnalysis(SemanticAnalyzer& analyzer, const ParseNode& root, const vector<Token>& tokens) {
+    analyzer.analyze(root, tokens);
+}
+
 bool outputLexicalAnalysis(const vector<Token>& tokens, const string& outputPath = "") {
     printLexicalAnalysis(cout, tokens);
     if (!outputPath.empty()) {
@@ -32,6 +37,14 @@ bool outputSyntaxAnalysis(const ParseNode& root, const string& outputPath = "") 
     printTree(cout, root);
     if (!outputPath.empty()) {
         return printSyntaxAnalysisToFile("test/milestone-2/" + outputPath, root);
+    }
+    return true;
+}
+
+bool outputSemanticAnalysis(const SemanticAnalyzer& analyzer, const string& outputPath = "") {
+    printSemanticAnalysis(cout, analyzer);
+    if (!outputPath.empty()) {
+        return printSemanticAnalysisToFile("test/milestone-3/" + outputPath, analyzer);
     }
     return true;
 }
@@ -56,11 +69,22 @@ bool isBothChoice(const string& choice) {
            choice == "both" || choice == "Both" || choice == "BOTH";
 }
 
+bool isSemanticChoice(const string& choice) {
+    return choice == "4" || choice == "semantic" || choice == "Semantic" || choice == "SEMANTIC";
+}
+
+bool isAllChoice(const string& choice) {
+    return choice == "5" || choice == "semua" || choice == "Semua" || choice == "SEMUA" ||
+           choice == "all" || choice == "All" || choice == "ALL";
+}
+
 int runInteractiveMode() {
     cout << "Pilih mode:" << endl;
     cout << "1. lexical" << endl;
     cout << "2. syntax" << endl;
     cout << "3. keduanya" << endl;
+    cout << "4. semantic" << endl;
+    cout << "5. semua" << endl;
 
     string choice = askLine("Pilihan: ");
     if (isLexicalChoice(choice)) {
@@ -113,6 +137,52 @@ int runInteractiveMode() {
         return 0;
     }
 
+    if (isSemanticChoice(choice)) {
+        std::cout << "=== [!] Input: Source Code ===" << endl;
+        std::cout << "=== [!] Ouput: Decorated AST ===" << endl;
+        std::cout << "=== Input file berada di folder milestone-1 [test/milestone-1] ===" << endl;
+        std::cout << "=== Output file berada di folder milestone-3 [test/milestone-3] ===" << endl;
+        string inputFile = askLine("File input source: ");
+        string outputFile = askLine("File output semantic (kosongkan kalau tidak mau print ke file): ");
+
+        vector<Token> tokens = runLexicalAnalysis("test/milestone-1/" + inputFile);
+        ParseNode root = runSyntaxAnalysis(tokens);
+        SemanticAnalyzer analyzer;
+        runSemanticAnalysis(analyzer, root, tokens);
+        if (!outputSemanticAnalysis(analyzer, outputFile)) {
+            return 1;
+        }
+        return 0;
+    }
+
+    if (isAllChoice(choice)) {
+        std::cout << "=== [!] Input: Source Code (belum menjadi token) -> FILE Harus berada di [test/milestone-1/] ===" << endl;
+        std::cout << "=== [!] Output: Token -> FILE akan berada di [test/milestone-1/] ===" << endl;
+        std::cout << "=== [!] Output: Parse Tree -> FILE akan berada di [test/milestone-2/] ===" << endl;
+        std::cout << "=== [!] Output: Decorated AST -> FILE akan berada di [test/milestone-3/] ===" << endl;
+        string inputFile = askLine("File input source: ");
+        string lexicalOutput = askLine("File output lexical (kosongkan kalau tidak mau print ke file): ");
+        string syntaxOutput = askLine("File output syntax (kosongkan kalau tidak mau print ke file): ");
+        string semanticOutput = askLine("File output semantic (kosongkan kalau tidak mau print ke file): ");
+
+        vector<Token> tokens = runLexicalAnalysis("test/milestone-1/" + inputFile);
+        if (!outputLexicalAnalysis(tokens, lexicalOutput)) {
+            return 1;
+        }
+
+        ParseNode root = runSyntaxAnalysis(tokens);
+        if (!outputSyntaxAnalysis(root, syntaxOutput)) {
+            return 1;
+        }
+
+        SemanticAnalyzer analyzer;
+        runSemanticAnalysis(analyzer, root, tokens);
+        if (!outputSemanticAnalysis(analyzer, semanticOutput)) {
+            return 1;
+        }
+        return 0;
+    }
+
     cout << "[!] Pilihan tidak dikenali." << endl;
     return 1;
 }
@@ -122,6 +192,7 @@ int runCommandMode(int argc, char* argv[]) {
     string inputFile = argv[1];
     string lexicalOutput = argc >= 3 ? argv[2] : "";
     string syntaxOutput = argc >= 4 ? argv[3] : "";
+    string semanticOutput = argc >= 5 ? argv[4] : "";
 
     vector<Token> tokens = runLexicalAnalysis(inputFile);
     if (!outputLexicalAnalysis(tokens, lexicalOutput)) {
@@ -130,6 +201,12 @@ int runCommandMode(int argc, char* argv[]) {
 
     ParseNode root = runSyntaxAnalysis(tokens);
     if (!outputSyntaxAnalysis(root, syntaxOutput)) {
+        return 1;
+    }
+
+    SemanticAnalyzer analyzer;
+    runSemanticAnalysis(analyzer, root, tokens);
+    if (!outputSemanticAnalysis(analyzer, semanticOutput)) {
         return 1;
     }
 
