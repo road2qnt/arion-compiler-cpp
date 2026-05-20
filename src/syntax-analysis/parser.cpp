@@ -40,6 +40,8 @@ bool Parser::match(TokenType type) const {
 ParseNode Parser::expect(TokenType type) {
     if (match(type)) {
         ParseNode node(tokenToLabel(peek()),true);
+        node.line = peek().line;
+        node.column = peek().column;
         advance();
         return node;
     } else {
@@ -51,7 +53,10 @@ ParseNode Parser::expect(TokenType type) {
 
 ParseNode Parser::error(const string& msg) const {
     cout << "Syntax error: " << msg << endl;
-    return ParseNode("error", true);
+    ParseNode node("error", true);
+    node.line = peek().line;
+    node.column = peek().column;
+    return node;
 }
 
 string Parser::tokenToLabel(const Token& t) const {
