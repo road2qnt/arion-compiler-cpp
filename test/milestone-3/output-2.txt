@@ -1,5 +1,5 @@
 programsy
-ident(Test)
+ident(TypeMismatch)
 semicolon
 varsy
 ident(x)
@@ -9,13 +9,13 @@ semicolon
 beginsy
 ident(x)
 becomes
-intcon(10)
+string('hello')
 endsy
 period
 <Program>
 ├── <Program-header>
 │   ├── programsy
-│   ├── ident(Test)
+│   ├── ident(TypeMismatch)
 │   └── semicolon
 ├── <declaration-part>
 │   └── <var-declaration>
@@ -38,18 +38,18 @@ period
 │   │               └── <simple-expression>
 │   │                   └── <term>
 │   │                       └── <factor>
-│   │                           └── intcon(10)
+│   │                           └── string('hello')
 │   └── endsy
 └── period
 
 ========== Decorated AST ==========
-Program: Test [tab=11]
+Program: TypeMismatch [tab=11]
   Declarations:
     VarDecl: x [tab=12] type=integer
   Block: [1 statements]
     Assign:
       Var: x [tab=12] type=integer lev=0 lval=true
-      Number: 10
+      String: "'hello'"
 
 === Symbol Table (tab) ===
 idx id            obj        type      ref  nrm  lev  adr    link 
@@ -65,7 +65,7 @@ idx id            obj        type      ref  nrm  lev  adr    link
 8   readln        procedure  void      0    1    0    0      7    
 9   write         procedure  void      0    1    0    0      8    
 10  read          procedure  void      0    1    0    0      9    
-11  Test          program    void      1    1    0    0      10   
+11  TypeMismatch  program    void      1    1    0    0      10   
 12  x             variable   integer   0    1    0    0      11   
 
 === Block Table (btab) ===
@@ -78,3 +78,6 @@ idx  last   lpar   psze   vsze
 idx  xtyp   etyp   eref   low    high   elsz   size   
 -----------------------------------------------
 (empty)
+
+========== Semantic Errors ==========
+Semantic error: incompatible types

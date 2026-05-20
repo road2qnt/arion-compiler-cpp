@@ -4,26 +4,28 @@
 #include <string>
 #include <vector>
 
-// Type codes for built-in types
-#define TYPE_VOID      -1
-#define TYPE_INTEGER   22
-#define TYPE_REAL      23
-#define TYPE_BOOLEAN   24
-#define TYPE_CHAR      25
-#define TYPE_STRING    26
-#define TYPE_ERROR     99
+#define TYPE_VOID      0
+#define TYPE_INTEGER   1
+#define TYPE_REAL      2
+#define TYPE_BOOLEAN   3
+#define TYPE_CHAR      4
+#define TYPE_ARRAY     5
+#define TYPE_RECORD    6
+#define TYPE_STRING    7
+#define TYPE_ENUM      8
+#define TYPE_SUBRANGE  9
+#define TYPE_ERROR     -1
 
-// Object kind codes for symbol table
-#define OBJ_CONSTANT   1
+#define OBJ_CONSTANT   0
+#define OBJ_VARIABLE   1
 #define OBJ_TYPE       2
-#define OBJ_VARIABLE   3
-#define OBJ_PROCEDURE  4
-#define OBJ_FUNCTION   5
-#define OBJ_PARAM      6
+#define OBJ_PROCEDURE  3
+#define OBJ_FUNCTION   4
+#define OBJ_PROGRAM    5
+#define OBJ_PARAM      OBJ_VARIABLE
 
-// Parameter mode
-#define PARAM_VALUE    0   // passed by value
-#define PARAM_REF      1   // passed by reference (var parameter)
+#define PARAM_VALUE    1
+#define PARAM_REF      0
 
 // Type kind for TypeNode
 enum class TypeKind {
@@ -78,8 +80,10 @@ struct DeclarationsNode : ASTNode {
 
 struct TypeNode : ASTNode {
     TypeKind kind;
+    int ref;
+    int size;
 
-    TypeNode(TypeKind k) : kind(k) {}
+    TypeNode(TypeKind k) : kind(k), ref(-1), size(0) {}
     virtual ~TypeNode() = default;
 };
 
@@ -133,11 +137,13 @@ struct SubprogramDeclNode : DeclNode {
     bool isFunction;
     std::vector<VarDeclNode*> params;
     TypeNode* returnType;
+    DeclarationsNode* localDecls;
     ASTNode* body;
     int tabIndex;
 
     SubprogramDeclNode(const std::string& name, bool isFunc = false)
-        : name(name), isFunction(isFunc), returnType(nullptr), body(nullptr), tabIndex(-1) {}
+        : name(name), isFunction(isFunc), returnType(nullptr),
+          localDecls(nullptr), body(nullptr), tabIndex(-1) {}
     ~SubprogramDeclNode() override;
 };
 
@@ -309,6 +315,7 @@ inline ArrayTypeNode::~ArrayTypeNode() {
 inline SubprogramDeclNode::~SubprogramDeclNode() {
     for (auto* p : params) delete p;
     delete returnType;
+    delete localDecls;
     delete body;
 }
 

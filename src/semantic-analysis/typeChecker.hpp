@@ -39,7 +39,7 @@ public:
     void clearErrors() { errors.clear(); }
 
 private:
-    SymbolTable& symTab;
+    [[maybe_unused]] SymbolTable& symTab;
     std::vector<SemanticError> errors;
 };
 

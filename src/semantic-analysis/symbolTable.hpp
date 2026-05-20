@@ -12,12 +12,12 @@
 #define MAX_LEVEL      32
 #define MAX_DISPLAY    32
 
-// Size constants
-#define INT_SIZE    4
-#define REAL_SIZE   8
+#define INT_SIZE    1
+#define REAL_SIZE   1
 #define BOOL_SIZE   1
 #define CHAR_SIZE   1
-#define ADDR_SIZE   4  // Size of a pointer/address
+#define STRING_SIZE 1
+#define ADDR_SIZE   1
 #define MAX_ADR     32000
 
 struct TabEntry {
@@ -30,9 +30,9 @@ struct TabEntry {
     int lev;            // Lexical level
     int adr;            // Address/offset/value
 
-    TabEntry() : link(-1), obj(0), type(TYPE_VOID), ref(-1), nrm(PARAM_VALUE), lev(0), adr(0) {}
+    TabEntry() : link(-1), obj(OBJ_CONSTANT), type(TYPE_VOID), ref(0), nrm(PARAM_VALUE), lev(0), adr(0) {}
     TabEntry(const std::string& id, int obj, int type, int lev, int adr)
-        : id(id), link(-1), obj(obj), type(type), ref(-1), nrm(PARAM_VALUE), lev(lev), adr(adr) {}
+        : id(id), link(-1), obj(obj), type(type), ref(0), nrm(PARAM_VALUE), lev(lev), adr(adr) {}
 };
 
 struct BtabEntry {

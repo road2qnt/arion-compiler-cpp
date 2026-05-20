@@ -60,17 +60,6 @@ void SymbolTable::pushScope() {
 void SymbolTable::popScope() {
     int level = getCurrentLevel();
     if (level < 0) return;
-
-    // Remove identifiers belonging to this scope from tab
-    int btabIdx = display[level];
-    int lastId = btab[btabIdx].last;
-    
-    // Pop identifiers until we reach the end of this scope
-    int targetSize = lastId + 1;
-    if (targetSize < (int)tab.size()) {
-        tab.resize(targetSize);
-    }
-
     display[level] = -1;
 }
 
@@ -81,24 +70,32 @@ int SymbolTable::getBtabIndexForLevel(int level) const {
     return -1;
 }
 
+static std::string lower(const std::string& s) {
+    std::string r = s;
+    for (char& c : r) {
+        if (c >= 'A' && c <= 'Z') c = (char)(c - 'A' + 'a');
+    }
+    return r;
+}
+
 int SymbolTable::lookup(const std::string& name) const {
     int level = getCurrentLevel();
-    
-    // Search from innermost scope outward
+    std::string target = lower(name);
+
     for (int l = level; l >= 0; --l) {
         int btabIdx = display[l];
         if (btabIdx == -1) continue;
-        
+
         int current = btab[btabIdx].last;
         while (current != -1) {
-            if (tab[current].id == name) {
+            if (lower(tab[current].id) == target) {
                 return current;
             }
             current = tab[current].link;
         }
     }
-    
-    return -1; // Not found
+
+    return -1;
 }
 
 int SymbolTable::lookupInCurrentScope(const std::string& name) const {
@@ -106,9 +103,10 @@ int SymbolTable::lookupInCurrentScope(const std::string& name) const {
     int btabIdx = display[level];
     if (btabIdx == -1) return -1;
 
+    std::string target = lower(name);
     int current = btab[btabIdx].last;
     while (current != -1) {
-        if (tab[current].id == name) {
+        if (lower(tab[current].id) == target) {
             return current;
         }
         current = tab[current].link;
@@ -118,173 +116,139 @@ int SymbolTable::lookupInCurrentScope(const std::string& name) const {
 }
 
 void SymbolTable::initializePredefinedIdentifiers() {
-    // Create global block (btab[0])
     BtabEntry globalBlock;
+    globalBlock.lpar = 0;
     btab.push_back(globalBlock);
     display[0] = 0;
 
-    // Predefined identifiers (indices 0-32)
-    // 0: integer
-    {
-        TabEntry entry("integer", OBJ_TYPE, TYPE_INTEGER, 0, 0);
-        entry.link = -1;
-        btab[0].last = addToTab(entry);
-    }
-    
-    // 1: real
-    {
-        TabEntry entry("real", OBJ_TYPE, TYPE_REAL, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
-    
-    // 2: boolean
-    {
-        TabEntry entry("boolean", OBJ_TYPE, TYPE_BOOLEAN, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
-    
-    // 3: char
-    {
-        TabEntry entry("char", OBJ_TYPE, TYPE_CHAR, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
-    
-    // 4: true
-    {
-        TabEntry entry("true", OBJ_CONSTANT, TYPE_BOOLEAN, 0, 1);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
-    
-    // 5: false
-    {
-        TabEntry entry("false", OBJ_CONSTANT, TYPE_BOOLEAN, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
-    
-    // 6: maxint
-    {
-        TabEntry entry("maxint", OBJ_CONSTANT, TYPE_INTEGER, 0, 32767);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
+    auto addPredef = [&](const std::string& id, int obj, int type, int adr) {
+        TabEntry e(id, obj, type, 0, adr);
+        e.nrm = PARAM_VALUE;
+        e.ref = 0;
+        e.link = btab[0].last;
+        btab[0].last = addToTab(e);
+    };
 
-    // 7: writeln (procedure)
-    {
-        TabEntry entry("writeln", OBJ_PROCEDURE, TYPE_VOID, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
+    addPredef("integer", OBJ_TYPE, TYPE_INTEGER, INT_SIZE);
+    addPredef("real",    OBJ_TYPE, TYPE_REAL,    REAL_SIZE);
+    addPredef("boolean", OBJ_TYPE, TYPE_BOOLEAN, BOOL_SIZE);
+    addPredef("char",    OBJ_TYPE, TYPE_CHAR,    CHAR_SIZE);
+    addPredef("string",  OBJ_TYPE, TYPE_STRING,  STRING_SIZE);
 
-    // 8: readln (procedure)
-    {
-        TabEntry entry("readln", OBJ_PROCEDURE, TYPE_VOID, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
+    addPredef("true",   OBJ_CONSTANT, TYPE_BOOLEAN, 1);
+    addPredef("false",  OBJ_CONSTANT, TYPE_BOOLEAN, 0);
 
-    // 9: write (procedure)
-    {
-        TabEntry entry("write", OBJ_PROCEDURE, TYPE_VOID, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
-    }
+    addPredef("writeln", OBJ_PROCEDURE, TYPE_VOID, 0);
+    addPredef("readln",  OBJ_PROCEDURE, TYPE_VOID, 0);
+    addPredef("write",   OBJ_PROCEDURE, TYPE_VOID, 0);
+    addPredef("read",    OBJ_PROCEDURE, TYPE_VOID, 0);
+}
 
-    // 10: read (procedure)
-    {
-        TabEntry entry("read", OBJ_PROCEDURE, TYPE_VOID, 0, 0);
-        entry.link = btab[0].last;
-        btab[0].last = addToTab(entry);
+static const char* objLabel(int obj) {
+    switch (obj) {
+        case OBJ_CONSTANT:  return "constant";
+        case OBJ_VARIABLE:  return "variable";
+        case OBJ_TYPE:      return "type";
+        case OBJ_PROCEDURE: return "procedure";
+        case OBJ_FUNCTION:  return "function";
+        case OBJ_PROGRAM:   return "program";
+        default:            return "?";
+    }
+}
+
+static const char* typeLabel(int t) {
+    switch (t) {
+        case TYPE_VOID:     return "void";
+        case TYPE_INTEGER:  return "integer";
+        case TYPE_REAL:     return "real";
+        case TYPE_BOOLEAN:  return "boolean";
+        case TYPE_CHAR:     return "char";
+        case TYPE_ARRAY:    return "array";
+        case TYPE_RECORD:   return "record";
+        case TYPE_STRING:   return "string";
+        case TYPE_ENUM:     return "enum";
+        case TYPE_SUBRANGE: return "subrange";
+        case TYPE_ERROR:    return "error";
+        default:            return "?";
     }
 }
 
 void SymbolTable::printSymbolTable(std::ostream& os) const {
     os << "\n=== Symbol Table (tab) ===\n";
-    os << std::left << std::setw(5) << "Idx"
-       << std::setw(15) << "Name"
-       << std::setw(10) << "Kind"
-       << std::setw(8) << "Type"
-       << std::setw(6) << "Lev"
-       << std::setw(8) << "Address"
-       << std::setw(6) << "Link" << "\n";
-    os << std::string(60, '-') << "\n";
+    os << std::left
+       << std::setw(4)  << "idx"
+       << std::setw(14) << "id"
+       << std::setw(11) << "obj"
+       << std::setw(10) << "type"
+       << std::setw(5)  << "ref"
+       << std::setw(5)  << "nrm"
+       << std::setw(5)  << "lev"
+       << std::setw(7)  << "adr"
+       << std::setw(5)  << "link" << "\n";
+    os << std::string(66, '-') << "\n";
 
     for (size_t i = 0; i < tab.size(); ++i) {
         const auto& e = tab[i];
-        os << std::left << std::setw(5) << i
-           << std::setw(15) << e.id
-           << std::setw(10);
-        
-        switch (e.obj) {
-            case OBJ_CONSTANT:  os << "constant"; break;
-            case OBJ_TYPE:      os << "type"; break;
-            case OBJ_VARIABLE:  os << "variable"; break;
-            case OBJ_PROCEDURE: os << "procedure"; break;
-            case OBJ_FUNCTION:  os << "function"; break;
-            case OBJ_PARAM:     os << "param"; break;
-            default:            os << "unknown"; break;
-        }
-
-        std::string typeStr;
-        switch (e.type) {
-            case TYPE_INTEGER: typeStr = "integer"; break;
-            case TYPE_REAL:    typeStr = "real"; break;
-            case TYPE_BOOLEAN: typeStr = "boolean"; break;
-            case TYPE_CHAR:    typeStr = "char"; break;
-            case TYPE_STRING:  typeStr = "string"; break;
-            case TYPE_VOID:    typeStr = "void"; break;
-            default:           typeStr = std::to_string(e.type); break;
-        }
-
-        os << std::setw(8) << typeStr
-           << std::setw(6) << e.lev
-           << std::setw(8) << e.adr
-           << std::setw(6) << e.link << "\n";
+        int link = (e.link < 0) ? 0 : e.link;
+        os << std::left
+           << std::setw(4)  << i
+           << std::setw(14) << e.id
+           << std::setw(11) << objLabel(e.obj)
+           << std::setw(10) << typeLabel(e.type)
+           << std::setw(5)  << e.ref
+           << std::setw(5)  << e.nrm
+           << std::setw(5)  << e.lev
+           << std::setw(7)  << e.adr
+           << std::setw(5)  << link << "\n";
     }
 
     os << "\n=== Block Table (btab) ===\n";
-    os << std::left << std::setw(5) << "Idx"
-       << std::setw(8) << "Last"
-       << std::setw(8) << "LPar"
-       << std::setw(8) << "PSize"
-       << std::setw(8) << "VSize" << "\n";
-    os << std::string(40, '-') << "\n";
+    os << std::left
+       << std::setw(5) << "idx"
+       << std::setw(7) << "last"
+       << std::setw(7) << "lpar"
+       << std::setw(7) << "psze"
+       << std::setw(7) << "vsze" << "\n";
+    os << std::string(33, '-') << "\n";
 
     for (size_t i = 0; i < btab.size(); ++i) {
         const auto& b = btab[i];
-        os << std::left << std::setw(5) << i
-           << std::setw(8) << b.last
-           << std::setw(8) << b.lpar
-           << std::setw(8) << b.psze
-           << std::setw(8) << b.vsze << "\n";
+        int last = (b.last < 0) ? 0 : b.last;
+        int lpar = (b.lpar < 0) ? 0 : b.lpar;
+        os << std::left
+           << std::setw(5) << i
+           << std::setw(7) << last
+           << std::setw(7) << lpar
+           << std::setw(7) << b.psze
+           << std::setw(7) << b.vsze << "\n";
     }
 
-    if (!atab.empty()) {
-        os << "\n=== Array Table (atab) ===\n";
-        os << std::left << std::setw(5) << "Idx"
-           << std::setw(8) << "XTyp"
-           << std::setw(8) << "ETyp"
-           << std::setw(6) << "ERef"
-           << std::setw(8) << "Low"
-           << std::setw(8) << "High"
-           << std::setw(8) << "ElSz"
-           << std::setw(8) << "Size" << "\n";
-        os << std::string(60, '-') << "\n";
+    os << "\n=== Array Table (atab) ===\n";
+    os << std::left
+       << std::setw(5) << "idx"
+       << std::setw(7) << "xtyp"
+       << std::setw(7) << "etyp"
+       << std::setw(7) << "eref"
+       << std::setw(7) << "low"
+       << std::setw(7) << "high"
+       << std::setw(7) << "elsz"
+       << std::setw(7) << "size" << "\n";
+    os << std::string(47, '-') << "\n";
 
+    if (atab.empty()) {
+        os << "(empty)\n";
+    } else {
         for (size_t i = 0; i < atab.size(); ++i) {
             const auto& a = atab[i];
-            os << std::left << std::setw(5) << i
-               << std::setw(8) << a.xtyp
-               << std::setw(8) << a.etyp
-               << std::setw(6) << a.eref
-               << std::setw(8) << a.low
-               << std::setw(8) << a.high
-               << std::setw(8) << a.elsz
-               << std::setw(8) << a.size << "\n";
+            os << std::left
+               << std::setw(5) << i
+               << std::setw(7) << a.xtyp
+               << std::setw(7) << a.etyp
+               << std::setw(7) << a.eref
+               << std::setw(7) << a.low
+               << std::setw(7) << a.high
+               << std::setw(7) << a.elsz
+               << std::setw(7) << a.size << "\n";
         }
     }
 }

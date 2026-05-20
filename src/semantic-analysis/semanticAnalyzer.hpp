@@ -85,6 +85,22 @@ private:
     int findLineForNode(const ParseNode& node) const;
     bool isTokenNode(const ParseNode& node, const std::string& tokenType) const;
     ParseNode findChild(const ParseNode& node, const std::string& label) const;
+
+    struct ResolvedType {
+        int typeCode;
+        int ref;
+        int size;
+        ResolvedType() : typeCode(TYPE_VOID), ref(0), size(0) {}
+        ResolvedType(int t, int r, int s) : typeCode(t), ref(r), size(s) {}
+    };
+    ResolvedType resolveTypeNode(TypeNode* tn);
+    ResolvedType resolveArrayType(ArrayTypeNode* arr);
+    ResolvedType resolveRecordType(RecordTypeNode* rec);
+    ResolvedType resolveRangeType(RangeTypeNode* rng);
+    ResolvedType resolveEnumType(EnumeratedTypeNode* en);
+
+    int constNodeOrdinalValue(ASTNode* c, int& outType) const;
+    int sizeOfPrimitive(int typeCode) const;
 };
 
 #endif // SEMANTICANALYZER_HPP

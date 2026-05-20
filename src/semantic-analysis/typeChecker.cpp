@@ -4,6 +4,7 @@
 TypeChecker::TypeChecker(SymbolTable& symTab) : symTab(symTab) {}
 
 bool TypeChecker::isCompatible(int type1, int type2) const {
+    if (type1 == TYPE_ERROR || type2 == TYPE_ERROR) return true;
     if (type1 == type2) return true;
 
     if ((type1 == TYPE_INTEGER && type2 == TYPE_REAL) ||
@@ -47,6 +48,9 @@ bool TypeChecker::isString(int type) const {
 }
 
 bool TypeChecker::isValidRelationalOperator(int leftType, int rightType) const {
+    if (leftType == TYPE_BOOLEAN || rightType == TYPE_BOOLEAN) return false;
+    if (leftType == TYPE_RECORD || rightType == TYPE_RECORD) return false;
+    if (leftType == TYPE_ARRAY  || rightType == TYPE_ARRAY)  return false;
     return isCompatible(leftType, rightType);
 }
 

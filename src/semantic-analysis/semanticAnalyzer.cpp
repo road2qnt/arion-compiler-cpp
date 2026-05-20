@@ -1,6 +1,14 @@
 #include "semanticAnalyzer.hpp"
 #include <sstream>
 #include <algorithm>
+#include <cctype>
+
+static std::string toLowerCopy(const std::string& s) {
+    std::string r;
+    r.reserve(s.size());
+    for (char c : s) r += (char)std::tolower((unsigned char)c);
+    return r;
+}
 
 static std::string mapOpToken(const std::string& token) {
     if (token == "plus") return "+";
@@ -192,124 +200,217 @@ std::vector<DeclNode*> SemanticAnalyzer::convertTypeDecls(const ParseNode& node)
 }
 
 SubprogramDeclNode* SemanticAnalyzer::convertSubprogramDecl(const ParseNode& node) {
-    std::string name = "subprogram";
-    bool isFunction = false;
-
-    if (node.label == "<procedure-declaration>") {
-        for (size_t i = 1; i < node.children.size(); i++) {
-            if (node.children[i].isTerminal && node.children[i].label.rfind("ident", 0) == 0) {
-                name = getTokenValue(node.children[i]);
+    const ParseNode* inner = &node;
+    if (node.label == "<subprogram-declaration>") {
+        for (const auto& child : node.children) {
+            if (child.label == "<procedure-declaration>" || child.label == "<function-declaration>") {
+                inner = &child;
                 break;
             }
         }
-    } else if (node.label == "<function-declaration>") {
-        isFunction = true;
-        for (size_t i = 1; i < node.children.size(); i++) {
-            if (node.children[i].isTerminal && node.children[i].label.rfind("ident", 0) == 0) {
-                name = getTokenValue(node.children[i]);
-                break;
-            }
+    }
+
+    std::string name = "subprogram";
+    bool isFunction = (inner->label == "<function-declaration>");
+
+    for (size_t i = 1; i < inner->children.size(); i++) {
+        if (inner->children[i].isTerminal && inner->children[i].label.rfind("ident", 0) == 0) {
+            name = getTokenValue(inner->children[i]);
+            break;
         }
     }
 
     SubprogramDeclNode* sub = new SubprogramDeclNode(name, isFunction);
 
-    for (const auto& child : node.children) {
-        if (child.label == "<compound-statement>") {
-            sub->body = convertCompoundStatement(child);
-        } else if (child.label == "<block>") {
-            for (const auto& blockChild : child.children) {
-                if (blockChild.label == "<compound-statement>") {
-                    sub->body = convertCompoundStatement(blockChild);
+    auto extractParamGroup = [&](const ParseNode& paramChild) {
+        std::vector<std::string> pnames;
+        TypeNode* pType = nullptr;
+        bool seenColon = false;
+        for (const auto& pc : paramChild.children) {
+            if (pc.isTerminal && pc.label == "colon") { seenColon = true; continue; }
+            if (!seenColon) {
+                if (pc.label == "<identifier-list>") {
+                    for (const auto& il : pc.children) {
+                        if (il.isTerminal && il.label.rfind("ident", 0) == 0) {
+                            pnames.push_back(getTokenValue(il));
+                        }
+                    }
+                } else if (pc.isTerminal && pc.label.rfind("ident", 0) == 0) {
+                    pnames.push_back(getTokenValue(pc));
+                }
+            } else {
+                if (pc.label == "<type>") {
+                    pType = convertType(pc);
+                } else if (pc.isTerminal && pc.label.rfind("ident", 0) == 0 && !pType) {
+                    pType = new SimpleTypeNode(getTokenValue(pc));
                 }
             }
-        } else if (child.label == "<formal-parameter-list>") {
-            for (const auto& paramChild : child.children) {
-                if (paramChild.label == "<parameter-group>") {
-                    for (size_t p = 0; p < paramChild.children.size(); p++) {
-                        if (paramChild.children[p].isTerminal &&
-                            paramChild.children[p].label.rfind("ident", 0) == 0) {
-                            VarDeclNode* param = new VarDeclNode(getTokenValue(paramChild.children[p]));
-                            sub->params.push_back(param);
+        }
+        for (const auto& pn : pnames) {
+            VarDeclNode* param = new VarDeclNode(pn);
+            param->varType = pType;
+            sub->params.push_back(param);
+        }
+    };
+
+    auto walkParts = [&](const ParseNode& container) {
+        for (const auto& child : container.children) {
+            if (child.label == "<compound-statement>") {
+                sub->body = convertCompoundStatement(child);
+            } else if (child.label == "<Block>" || child.label == "<block>") {
+                for (const auto& blockChild : child.children) {
+                    if (blockChild.label == "<compound-statement>") {
+                        sub->body = convertCompoundStatement(blockChild);
+                    } else if (blockChild.label == "<declaration-part>") {
+                        sub->localDecls = convertDeclarationPart(blockChild);
+                    }
+                }
+            } else if (child.label == "<declaration-part>") {
+                sub->localDecls = convertDeclarationPart(child);
+            } else if (child.label == "<formal-parameter-list>") {
+                for (const auto& paramChild : child.children) {
+                    if (paramChild.label == "<parameter-group>") {
+                        extractParamGroup(paramChild);
+                    }
+                }
+            } else if (child.label == "<type>" && isFunction) {
+                sub->returnType = convertType(child);
+            } else if (child.isTerminal && child.label.rfind("ident", 0) == 0 && isFunction) {
+                if (!sub->returnType) {
+                    bool seenColon = false;
+                    for (size_t k = 0; k < container.children.size(); k++) {
+                        if (&container.children[k] == &child) break;
+                        if (container.children[k].isTerminal && container.children[k].label == "colon") {
+                            seenColon = true;
+                            break;
                         }
+                    }
+                    if (seenColon) {
+                        sub->returnType = new SimpleTypeNode(getTokenValue(child));
                     }
                 }
             }
         }
-    }
+    };
+
+    walkParts(*inner);
 
     return sub;
 }
 
 TypeNode* SemanticAnalyzer::convertType(const ParseNode& node) {
-    if (node.children.empty()) return nullptr;
-
-    const ParseNode& inner = node.children[0];
-
-    if (inner.isTerminal && inner.label.rfind("ident", 0) == 0) {
-        std::string name = getTokenValue(inner);
-        return new SimpleTypeNode(name);
+    const ParseNode* target = &node;
+    if (node.label == "<type>" && !node.children.empty()) {
+        target = &node.children[0];
     }
 
-    if (inner.label == "<array-type>") {
+    if (target->isTerminal && target->label.rfind("ident", 0) == 0) {
+        return new SimpleTypeNode(getTokenValue(*target));
+    }
+
+    if (target->label == "<array-type>") {
         ArrayTypeNode* arr = new ArrayTypeNode();
-        for (size_t i = 2; i < inner.children.size(); i++) {
-            if (inner.children[i].label == "<range>") {
-                arr->indexType = convertType(inner.children[i]);
-            } else if (inner.children[i].isTerminal &&
-                       inner.children[i].label.rfind("ident", 0) == 0) {
-                arr->indexType = new SimpleTypeNode(getTokenValue(inner.children[i]));
-            }
-        }
-        for (size_t i = 0; i < inner.children.size(); i++) {
-            if (inner.children[i].isTerminal && inner.children[i].label == "ofsy") {
-                if (i + 1 < inner.children.size() && inner.children[i+1].label == "<type>") {
-                    arr->elementType = convertType(inner.children[i+1]);
+        bool sawOf = false;
+        for (size_t i = 0; i < target->children.size(); i++) {
+            const ParseNode& ch = target->children[i];
+            if (ch.isTerminal && ch.label == "ofsy") { sawOf = true; continue; }
+            if (!sawOf) {
+                if (ch.label == "<range>") {
+                    arr->indexType = convertType(ch);
+                } else if (ch.isTerminal && ch.label.rfind("ident", 0) == 0) {
+                    arr->indexType = new SimpleTypeNode(getTokenValue(ch));
                 }
-                break;
+            } else {
+                if (ch.label == "<type>") {
+                    arr->elementType = convertType(ch);
+                } else if (ch.isTerminal && ch.label.rfind("ident", 0) == 0) {
+                    arr->elementType = new SimpleTypeNode(getTokenValue(ch));
+                }
             }
         }
         return arr;
     }
 
-    if (inner.label == "<range>") {
+    if (target->label == "<range>") {
         RangeTypeNode* range = new RangeTypeNode();
-        for (const auto& child : inner.children) {
+        for (const auto& child : target->children) {
             if (child.label == "<constant>") {
-                if (!range->low) {
-                    range->low = convertConstant(child);
-                } else if (!range->high) {
-                    range->high = convertConstant(child);
+                if (!range->low) range->low = convertConstant(child);
+                else if (!range->high) range->high = convertConstant(child);
+            } else if (child.isTerminal &&
+                       (child.label.rfind("intcon", 0) == 0 ||
+                        child.label.rfind("realcon", 0) == 0 ||
+                        child.label.rfind("charcon", 0) == 0 ||
+                        child.label.rfind("ident", 0) == 0)) {
+                ASTNode* c = nullptr;
+                if (child.label.rfind("intcon", 0) == 0) {
+                    c = new NumberNode(std::stoi(getTokenValue(child)));
+                } else if (child.label.rfind("realcon", 0) == 0) {
+                    c = new RealNode(std::stod(getTokenValue(child)));
+                } else if (child.label.rfind("charcon", 0) == 0) {
+                    std::string v = getTokenValue(child);
+                    if (!v.empty()) c = new CharNode(v[0]);
+                } else if (child.label.rfind("ident", 0) == 0) {
+                    c = new VarNode(getTokenValue(child));
+                }
+                if (c) {
+                    if (!range->low) range->low = c;
+                    else if (!range->high) range->high = c;
+                    else delete c;
                 }
             }
         }
         return range;
     }
 
-    if (inner.label == "<enumerated>") {
+    if (target->label == "<enumerated>") {
         EnumeratedTypeNode* en = new EnumeratedTypeNode();
-        for (const auto& child : inner.children) {
+        for (const auto& child : target->children) {
             if (child.isTerminal && child.label.rfind("ident", 0) == 0) {
                 en->values.push_back(getTokenValue(child));
+            } else if (child.label == "<identifier-list>") {
+                for (const auto& il : child.children) {
+                    if (il.isTerminal && il.label.rfind("ident", 0) == 0) {
+                        en->values.push_back(getTokenValue(il));
+                    }
+                }
             }
         }
         return en;
     }
 
-    if (inner.label == "<record-type>") {
+    if (target->label == "<record-type>") {
         RecordTypeNode* rec = new RecordTypeNode();
-        for (const auto& child : inner.children) {
+        for (const auto& child : target->children) {
             if (child.label == "<field-list>") {
                 for (const auto& fieldChild : child.children) {
                     if (fieldChild.label == "<field-part>") {
                         std::vector<std::string> fieldNames;
+                        TypeNode* ftype = nullptr;
+                        bool sawColon = false;
                         for (const auto& fp : fieldChild.children) {
-                            if (fp.isTerminal && fp.label.rfind("ident", 0) == 0) {
-                                fieldNames.push_back(getTokenValue(fp));
+                            if (fp.isTerminal && fp.label == "colon") { sawColon = true; continue; }
+                            if (!sawColon) {
+                                if (fp.label == "<identifier-list>") {
+                                    for (const auto& il : fp.children) {
+                                        if (il.isTerminal && il.label.rfind("ident", 0) == 0) {
+                                            fieldNames.push_back(getTokenValue(il));
+                                        }
+                                    }
+                                } else if (fp.isTerminal && fp.label.rfind("ident", 0) == 0) {
+                                    fieldNames.push_back(getTokenValue(fp));
+                                }
+                            } else {
+                                if (fp.label == "<type>") {
+                                    ftype = convertType(fp);
+                                } else if (fp.isTerminal && fp.label.rfind("ident", 0) == 0 && !ftype) {
+                                    ftype = new SimpleTypeNode(getTokenValue(fp));
+                                }
                             }
                         }
                         for (const auto& fname : fieldNames) {
                             FieldDeclNode* fd = new FieldDeclNode(fname);
+                            fd->fieldType = ftype;
                             rec->fields.push_back(fd);
                         }
                     }
@@ -767,22 +868,31 @@ void SemanticAnalyzer::visit(ASTNode* node) {
 }
 
 void SemanticAnalyzer::visitProgram(ProgramNode* node) {
-    int tabIdx = symTab.lookup(node->name);
-    if (tabIdx == -1) {
-        TabEntry entry(node->name, OBJ_PROCEDURE, TYPE_VOID, symTab.getCurrentLevel(), 0);
-        entry.link = symTab.getBtab(symTab.getCurrentBtabIndex()).last;
+    int existing = symTab.lookup(node->name);
+    if (existing == -1) {
+        TabEntry entry(node->name, OBJ_PROGRAM, TYPE_VOID, 0, 0);
+        entry.nrm = PARAM_VALUE;
+        entry.ref = 0;
+        entry.link = symTab.getBtab(0).last;
         int idx = symTab.addToTab(entry);
-        symTab.getBtab(symTab.getCurrentBtabIndex()).last = idx;
+        symTab.getBtab(0).last = idx;
         node->tabIndex = idx;
+        node->lev = 0;
+    } else {
+        node->tabIndex = existing;
     }
 
-    if (node->declarations) {
-        visit(node->declarations);
+    if (node->declarations) visit(node->declarations);
+
+    symTab.pushScope();
+    int bodyBtab = symTab.getCurrentBtabIndex();
+    if (node->tabIndex >= 0) {
+        symTab.getTab(node->tabIndex).ref = bodyBtab;
     }
 
-    if (node->body) {
-        visit(node->body);
-    }
+    if (node->body) visit(node->body);
+
+    symTab.popScope();
 }
 
 void SemanticAnalyzer::visitDeclarations(DeclarationsNode* node) {
@@ -798,26 +908,28 @@ void SemanticAnalyzer::visitVarDecl(VarDeclNode* node) {
         return;
     }
 
-    int typeCode = TYPE_INTEGER;
+    ResolvedType rt;
     if (node->varType) {
-        if (auto* simple = dynamic_cast<SimpleTypeNode*>(node->varType)) {
-            typeCode = resolveType(simple->name);
-        }
+        rt = resolveTypeNode(node->varType);
+    } else {
+        rt = ResolvedType(TYPE_INTEGER, 0, INT_SIZE);
     }
 
-    int adr = symTab.getBtab(symTab.getCurrentBtabIndex()).vsze;
-    int size = INT_SIZE;
-    if (typeCode == TYPE_REAL) size = REAL_SIZE;
-    else if (typeCode == TYPE_BOOLEAN || typeCode == TYPE_CHAR) size = 1;
+    int btabIdx = symTab.getCurrentBtabIndex();
+    int adr = symTab.getBtab(btabIdx).psze + symTab.getBtab(btabIdx).vsze;
+    int sz = (rt.size > 0) ? rt.size : 1;
+    symTab.getBtab(btabIdx).vsze += sz;
 
-    symTab.getBtab(symTab.getCurrentBtabIndex()).vsze += size;
-
-    TabEntry entry(node->name, OBJ_VARIABLE, typeCode, symTab.getCurrentLevel(), adr);
-    entry.link = symTab.getBtab(symTab.getCurrentBtabIndex()).last;
+    TabEntry entry(node->name, OBJ_VARIABLE, rt.typeCode, symTab.getCurrentLevel(), adr);
+    entry.ref = rt.ref;
+    entry.nrm = PARAM_VALUE;
+    entry.link = symTab.getBtab(btabIdx).last;
     int idx = symTab.addToTab(entry);
-    symTab.getBtab(symTab.getCurrentBtabIndex()).last = idx;
+    symTab.getBtab(btabIdx).last = idx;
+
     node->tabIndex = idx;
-    node->type = typeCode;
+    node->type = rt.typeCode;
+    node->lev = symTab.getCurrentLevel();
 }
 
 void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
@@ -834,24 +946,52 @@ void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
         if (auto* num = dynamic_cast<NumberNode*>(node->value)) {
             constType = TYPE_INTEGER;
             constValue = num->value;
+            num->type = TYPE_INTEGER;
         } else if (auto* real = dynamic_cast<RealNode*>(node->value)) {
             constType = TYPE_REAL;
             constValue = (int)real->value;
+            real->type = TYPE_REAL;
         } else if (auto* ch = dynamic_cast<CharNode*>(node->value)) {
             constType = TYPE_CHAR;
             constValue = (int)ch->value;
+            ch->type = TYPE_CHAR;
+        } else if (auto* str = dynamic_cast<StringNode*>(node->value)) {
+            constType = TYPE_STRING;
+            constValue = 0;
+            str->type = TYPE_STRING;
         } else if (auto* b = dynamic_cast<BoolNode*>(node->value)) {
             constType = TYPE_BOOLEAN;
             constValue = b->value ? 1 : 0;
+            b->type = TYPE_BOOLEAN;
+        } else if (auto* var = dynamic_cast<VarNode*>(node->value)) {
+            int idx = symTab.lookup(var->name);
+            if (idx == -1) {
+                typeChecker.reportError("undeclared identifier: " + var->name);
+            } else {
+                const TabEntry& e = symTab.getTab(idx);
+                if (e.obj != OBJ_CONSTANT) {
+                    typeChecker.reportError("constant initializer must be a constant: " + var->name);
+                } else {
+                    constType = e.type;
+                    constValue = e.adr;
+                }
+                var->tabIndex = idx;
+                var->type = e.type;
+                var->lev = e.lev;
+            }
         }
     }
 
+    int btabIdx = symTab.getCurrentBtabIndex();
     TabEntry entry(node->name, OBJ_CONSTANT, constType, symTab.getCurrentLevel(), constValue);
-    entry.link = symTab.getBtab(symTab.getCurrentBtabIndex()).last;
+    entry.nrm = PARAM_VALUE;
+    entry.ref = 0;
+    entry.link = symTab.getBtab(btabIdx).last;
     int idx = symTab.addToTab(entry);
-    symTab.getBtab(symTab.getCurrentBtabIndex()).last = idx;
+    symTab.getBtab(btabIdx).last = idx;
     node->tabIndex = idx;
     node->type = constType;
+    node->lev = symTab.getCurrentLevel();
 }
 
 void SemanticAnalyzer::visitTypeDecl(TypeDeclNode* node) {
@@ -861,67 +1001,113 @@ void SemanticAnalyzer::visitTypeDecl(TypeDeclNode* node) {
         return;
     }
 
-    int typeCode = TYPE_INTEGER;
+    ResolvedType rt;
     if (node->typeDef) {
-        if (auto* simple = dynamic_cast<SimpleTypeNode*>(node->typeDef)) {
-            typeCode = resolveType(simple->name);
-        }
+        rt = resolveTypeNode(node->typeDef);
     }
 
-    TabEntry entry(node->name, OBJ_TYPE, typeCode, symTab.getCurrentLevel(), 0);
-    entry.link = symTab.getBtab(symTab.getCurrentBtabIndex()).last;
+    int btabIdx = symTab.getCurrentBtabIndex();
+    TabEntry entry(node->name, OBJ_TYPE, rt.typeCode, symTab.getCurrentLevel(), rt.size);
+    entry.ref = rt.ref;
+    entry.nrm = PARAM_VALUE;
+    entry.link = symTab.getBtab(btabIdx).last;
     int idx = symTab.addToTab(entry);
-    symTab.getBtab(symTab.getCurrentBtabIndex()).last = idx;
+    symTab.getBtab(btabIdx).last = idx;
     node->tabIndex = idx;
-    node->type = typeCode;
+    node->type = rt.typeCode;
+    node->lev = symTab.getCurrentLevel();
 }
 
 void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
-    symTab.pushScope();
-
     int existing = symTab.lookupInCurrentScope(node->name);
     if (existing != -1) {
+        typeChecker.reportError("duplicate identifier: " + node->name);
+        return;
     }
 
+    int returnType = TYPE_VOID;
+    int returnRef = 0;
+    if (node->isFunction && node->returnType) {
+        ResolvedType rrt = resolveTypeNode(node->returnType);
+        returnType = rrt.typeCode;
+        returnRef = rrt.ref;
+    }
+
+    int parentBtab = symTab.getCurrentBtabIndex();
+    int parentLev = symTab.getCurrentLevel();
+
+    TabEntry subEntry(node->name,
+                      node->isFunction ? OBJ_FUNCTION : OBJ_PROCEDURE,
+                      returnType, parentLev, 0);
+    subEntry.ref = returnRef;
+    subEntry.nrm = PARAM_VALUE;
+    subEntry.link = symTab.getBtab(parentBtab).last;
+    int subIdx = symTab.addToTab(subEntry);
+    symTab.getBtab(parentBtab).last = subIdx;
+    node->tabIndex = subIdx;
+    node->lev = parentLev;
+
+    symTab.pushScope();
+    int subBtab = symTab.getCurrentBtabIndex();
+    symTab.getTab(subIdx).ref = subBtab;
+    int subLev = symTab.getCurrentLevel();
+
+    int paramAdr = 0;
     for (auto* param : node->params) {
-        int paramType = TYPE_INTEGER;
+        if (!param) continue;
+        ResolvedType pr;
         if (param->varType) {
-            if (auto* simple = dynamic_cast<SimpleTypeNode*>(param->varType)) {
-                paramType = resolveType(simple->name);
-            }
+            pr = resolveTypeNode(param->varType);
+        } else {
+            pr = ResolvedType(TYPE_INTEGER, 0, INT_SIZE);
         }
 
-        int adr = symTab.getBtab(symTab.getCurrentBtabIndex()).psze;
-        int size = INT_SIZE;
-        if (paramType == TYPE_REAL) size = REAL_SIZE;
+        TabEntry pe(param->name, OBJ_VARIABLE, pr.typeCode, subLev, paramAdr);
+        pe.ref = pr.ref;
+        pe.nrm = PARAM_VALUE;
+        pe.link = symTab.getBtab(subBtab).last;
+        int pidx = symTab.addToTab(pe);
+        symTab.getBtab(subBtab).last = pidx;
+        param->tabIndex = pidx;
+        param->type = pr.typeCode;
+        param->lev = subLev;
 
-        symTab.getBtab(symTab.getCurrentBtabIndex()).psze += size;
+        int sz = (pr.size > 0) ? pr.size : 1;
+        paramAdr += sz;
+    }
+    symTab.getBtab(subBtab).lpar = symTab.getBtab(subBtab).last;
+    symTab.getBtab(subBtab).psze = paramAdr;
 
-        TabEntry entry(param->name, OBJ_PARAM, paramType, symTab.getCurrentLevel(), adr);
-        entry.link = symTab.getBtab(symTab.getCurrentBtabIndex()).last;
-        int idx = symTab.addToTab(entry);
-        symTab.getBtab(symTab.getCurrentBtabIndex()).last = idx;
-        param->tabIndex = idx;
+    if (node->localDecls) visit(node->localDecls);
+
+    if (node->isFunction) {
+        int rfAdr = symTab.getBtab(subBtab).psze + symTab.getBtab(subBtab).vsze;
+        TabEntry rfe(node->name, OBJ_VARIABLE, returnType, subLev, rfAdr);
+        rfe.ref = returnRef;
+        rfe.nrm = PARAM_VALUE;
+        rfe.link = symTab.getBtab(subBtab).last;
+        int rfIdx = symTab.addToTab(rfe);
+        symTab.getBtab(subBtab).last = rfIdx;
     }
 
-    if (node->body) {
-        visit(node->body);
-    }
+    if (node->body) visit(node->body);
 
     symTab.popScope();
 }
 
 void SemanticAnalyzer::visitAssign(AssignNode* node) {
-    if (node->target) {
-        visit(node->target);
-    }
-    if (node->value) {
-        visit(node->value);
+    if (node->target) visit(node->target);
+    if (node->value)  visit(node->value);
+
+    if (node->target && !node->target->isLValue && node->target->type != TYPE_ERROR) {
+        typeChecker.reportError("cannot assign to non-variable: " + node->target->name);
     }
 
     if (node->target && node->value) {
-        if (!typeChecker.isAssignmentCompatible(node->target->type, node->value->type)) {
-            typeChecker.reportError("incompatible types");
+        if (node->target->type != TYPE_ERROR && node->value->type != TYPE_ERROR) {
+            if (!typeChecker.isAssignmentCompatible(node->target->type, node->value->type)) {
+                typeChecker.reportError("incompatible types");
+            }
         }
         node->type = node->value->type;
     } else {
@@ -1013,7 +1199,24 @@ void SemanticAnalyzer::visitRepeat(RepeatNode* node) {
 
 void SemanticAnalyzer::visitFor(ForNode* node) {
     if (node->start) visit(node->start);
-    if (node->end) visit(node->end);
+    if (node->end)   visit(node->end);
+
+    int loopVarIdx = symTab.lookup(node->varName);
+    int loopVarType = TYPE_ERROR;
+    if (loopVarIdx == -1) {
+        typeChecker.reportError("undeclared loop variable: " + node->varName);
+    } else {
+        const TabEntry& e = symTab.getTab(loopVarIdx);
+        loopVarType = e.type;
+        if (e.obj != OBJ_VARIABLE) {
+            typeChecker.reportError("for loop variable must be a variable: " + node->varName);
+        } else if (!typeChecker.isOrdinal(e.type)) {
+            typeChecker.reportError("for loop variable must be ordinal: " + node->varName);
+        }
+        node->varTabIndex = loopVarIdx;
+        node->type = TYPE_VOID;
+    }
+
     if (node->body) visit(node->body);
 
     if (node->start && !typeChecker.isOrdinal(node->start->type)) {
@@ -1021,6 +1224,16 @@ void SemanticAnalyzer::visitFor(ForNode* node) {
     }
     if (node->end && !typeChecker.isOrdinal(node->end->type)) {
         typeChecker.reportError("for loop ending value must be an ordinal type");
+    }
+    if (loopVarIdx != -1 && node->start && node->start->type != TYPE_ERROR) {
+        if (!typeChecker.isAssignmentCompatible(loopVarType, node->start->type)) {
+            typeChecker.reportError("for loop start value incompatible with loop variable");
+        }
+    }
+    if (loopVarIdx != -1 && node->end && node->end->type != TYPE_ERROR) {
+        if (!typeChecker.isAssignmentCompatible(loopVarType, node->end->type)) {
+            typeChecker.reportError("for loop end value incompatible with loop variable");
+        }
     }
 }
 
@@ -1036,14 +1249,63 @@ void SemanticAnalyzer::visitProcCall(ProcCallNode* node) {
     int tabIdx = symTab.lookup(node->name);
     if (tabIdx == -1) {
         typeChecker.reportError("undeclared identifier: " + node->name);
+        node->type = TYPE_ERROR;
+        return;
+    }
+
+    const TabEntry& e = symTab.getTab(tabIdx);
+    if (e.obj != OBJ_PROCEDURE && e.obj != OBJ_FUNCTION) {
+        typeChecker.reportError("'" + node->name + "' is not a procedure or function");
+        node->type = TYPE_ERROR;
         return;
     }
 
     node->tabIndex = tabIdx;
-    node->type = symTab.getTab(tabIdx).type;
+    node->type = e.type;
 
     for (auto* arg : node->args) {
-        visit(arg);
+        if (arg) visit(arg);
+    }
+
+    bool variadic = (e.lev == 0 && (node->name == "writeln" || node->name == "readln" ||
+                                    node->name == "write"   || node->name == "read"));
+    if (variadic) return;
+
+    int subBtab = e.ref;
+    if (subBtab <= 0 || subBtab >= symTab.getBtabSize()) return;
+
+    int lparIdx = symTab.getBtab(subBtab).lpar;
+    std::vector<int> params;
+    int subLev = e.lev + 1;
+    int cur = lparIdx;
+    while (cur > 0 && cur < symTab.getTabSize()) {
+        const TabEntry& p = symTab.getTab(cur);
+        if (p.lev != subLev || p.obj != OBJ_VARIABLE) break;
+        if (e.obj == OBJ_FUNCTION && p.id == node->name) break;
+        params.push_back(cur);
+        cur = p.link;
+    }
+    std::reverse(params.begin(), params.end());
+
+    if (params.size() != node->args.size()) {
+        typeChecker.reportError("call to '" + node->name + "': expected " +
+                                std::to_string(params.size()) + " arguments, got " +
+                                std::to_string(node->args.size()));
+        return;
+    }
+    for (size_t i = 0; i < params.size(); i++) {
+        const TabEntry& p = symTab.getTab(params[i]);
+        if (!node->args[i]) continue;
+        int argType = node->args[i]->type;
+        if (argType == TYPE_ERROR) continue;
+        if (!typeChecker.isAssignmentCompatible(p.type, argType)) {
+            typeChecker.reportError("call to '" + node->name + "': argument " +
+                                    std::to_string(i + 1) + " type mismatch");
+        }
+        if (p.nrm == PARAM_REF && !node->args[i]->isLValue) {
+            typeChecker.reportError("call to '" + node->name + "': argument " +
+                                    std::to_string(i + 1) + " must be a variable (var parameter)");
+        }
     }
 }
 
@@ -1055,26 +1317,303 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
         return;
     }
 
+    const TabEntry& e = symTab.getTab(tabIdx);
     node->tabIndex = tabIdx;
-    node->lev = symTab.getTab(tabIdx).lev;
-    node->type = symTab.getTab(tabIdx).type;
-    node->isLValue = (symTab.getTab(tabIdx).obj == OBJ_VARIABLE ||
-                      symTab.getTab(tabIdx).obj == OBJ_PARAM);
+    node->lev = e.lev;
+    node->type = e.type;
+    node->isLValue = (e.obj == OBJ_VARIABLE);
+
+    if (e.obj == OBJ_FUNCTION) {
+        node->type = e.type;
+        node->isLValue = false;
+    }
+
+    if (node->isArrayAccess && node->index) {
+        visit(node->index);
+        if (e.type == TYPE_ARRAY && e.ref >= 0 && e.ref < symTab.getAtabSize()) {
+            const AtabEntry& a = symTab.getAtab(e.ref);
+            if (node->index->type != TYPE_ERROR &&
+                !typeChecker.isCompatible(a.xtyp, node->index->type)) {
+                typeChecker.reportError("array '" + node->name + "' index type mismatch");
+            }
+            node->type = a.etyp;
+            node->isLValue = true;
+        } else {
+            typeChecker.reportError("'" + node->name + "' is not an array");
+            node->type = TYPE_ERROR;
+        }
+    }
+
+    if (!node->fieldName.empty()) {
+        if (e.type == TYPE_RECORD && e.ref >= 0 && e.ref < symTab.getBtabSize()) {
+            int last = symTab.getBtab(e.ref).last;
+            int found = -1;
+            while (last > 0 && last < symTab.getTabSize()) {
+                if (symTab.getTab(last).id == node->fieldName) { found = last; break; }
+                last = symTab.getTab(last).link;
+            }
+            if (found == -1) {
+                typeChecker.reportError("record '" + node->name + "' has no field '" + node->fieldName + "'");
+                node->type = TYPE_ERROR;
+            } else {
+                node->type = symTab.getTab(found).type;
+                node->isLValue = true;
+            }
+        } else {
+            typeChecker.reportError("'" + node->name + "' is not a record");
+            node->type = TYPE_ERROR;
+        }
+    }
 }
 
 int SemanticAnalyzer::resolveType(const std::string& typeName) const {
-    if (typeName == "integer") return TYPE_INTEGER;
-    if (typeName == "real") return TYPE_REAL;
-    if (typeName == "boolean") return TYPE_BOOLEAN;
-    if (typeName == "char") return TYPE_CHAR;
-    if (typeName == "string") return TYPE_STRING;
+    std::string lower = toLowerCopy(typeName);
+    if (lower == "integer") return TYPE_INTEGER;
+    if (lower == "real")    return TYPE_REAL;
+    if (lower == "boolean") return TYPE_BOOLEAN;
+    if (lower == "char")    return TYPE_CHAR;
+    if (lower == "string")  return TYPE_STRING;
 
     int idx = symTab.lookup(typeName);
-    if (idx != -1) {
-        return symTab.getTab(idx).type;
+    if (idx != -1) return symTab.getTab(idx).type;
+    return TYPE_ERROR;
+}
+
+int SemanticAnalyzer::sizeOfPrimitive(int typeCode) const {
+    switch (typeCode) {
+        case TYPE_INTEGER: return INT_SIZE;
+        case TYPE_REAL:    return REAL_SIZE;
+        case TYPE_BOOLEAN: return BOOL_SIZE;
+        case TYPE_CHAR:    return CHAR_SIZE;
+        case TYPE_STRING:  return STRING_SIZE;
+        case TYPE_ENUM:    return 1;
+        case TYPE_SUBRANGE:return 1;
+        default:           return 1;
+    }
+}
+
+int SemanticAnalyzer::constNodeOrdinalValue(ASTNode* c, int& outType) const {
+    outType = TYPE_ERROR;
+    if (!c) return 0;
+    if (auto* num = dynamic_cast<NumberNode*>(c)) { outType = TYPE_INTEGER; return num->value; }
+    if (auto* ch  = dynamic_cast<CharNode*>(c))   { outType = TYPE_CHAR;    return (int)ch->value; }
+    if (auto* b   = dynamic_cast<BoolNode*>(c))   { outType = TYPE_BOOLEAN; return b->value ? 1 : 0; }
+    if (auto* var = dynamic_cast<VarNode*>(c)) {
+        int idx = symTab.lookup(var->name);
+        if (idx != -1) {
+            const TabEntry& e = symTab.getTab(idx);
+            if (e.obj == OBJ_CONSTANT) {
+                outType = e.type;
+                return e.adr;
+            }
+        }
+    }
+    if (auto* unary = dynamic_cast<UnaryOpNode*>(c)) {
+        if (unary->op == "-") {
+            int t = TYPE_ERROR;
+            int v = constNodeOrdinalValue(unary->operand, t);
+            outType = t;
+            return -v;
+        }
+    }
+    return 0;
+}
+
+SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveTypeNode(TypeNode* tn) {
+    ResolvedType r(TYPE_INTEGER, 0, INT_SIZE);
+    if (!tn) return r;
+
+    if (auto* simple = dynamic_cast<SimpleTypeNode*>(tn)) {
+        std::string lower = toLowerCopy(simple->name);
+        if (lower == "integer")      r = ResolvedType(TYPE_INTEGER, 0, INT_SIZE);
+        else if (lower == "real")    r = ResolvedType(TYPE_REAL,    0, REAL_SIZE);
+        else if (lower == "boolean") r = ResolvedType(TYPE_BOOLEAN, 0, BOOL_SIZE);
+        else if (lower == "char")    r = ResolvedType(TYPE_CHAR,    0, CHAR_SIZE);
+        else if (lower == "string")  r = ResolvedType(TYPE_STRING,  0, STRING_SIZE);
+        else {
+            int idx = symTab.lookup(simple->name);
+            if (idx == -1) {
+                typeChecker.reportError("undeclared type identifier: " + simple->name);
+                r = ResolvedType(TYPE_ERROR, 0, 0);
+            } else {
+                const TabEntry& e = symTab.getTab(idx);
+                if (e.obj != OBJ_TYPE) {
+                    typeChecker.reportError("'" + simple->name + "' is not a type");
+                    r = ResolvedType(TYPE_ERROR, 0, 0);
+                } else {
+                    r = ResolvedType(e.type, e.ref, e.adr > 0 ? e.adr : sizeOfPrimitive(e.type));
+                }
+            }
+        }
+    } else if (auto* arr = dynamic_cast<ArrayTypeNode*>(tn)) {
+        r = resolveArrayType(arr);
+    } else if (auto* rec = dynamic_cast<RecordTypeNode*>(tn)) {
+        r = resolveRecordType(rec);
+    } else if (auto* rng = dynamic_cast<RangeTypeNode*>(tn)) {
+        r = resolveRangeType(rng);
+    } else if (auto* en = dynamic_cast<EnumeratedTypeNode*>(tn)) {
+        r = resolveEnumType(en);
     }
 
-    return TYPE_INTEGER;
+    tn->type = r.typeCode;
+    tn->ref = r.ref;
+    tn->size = r.size;
+    return r;
+}
+
+SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveRangeType(RangeTypeNode* rng) {
+    ResolvedType r(TYPE_SUBRANGE, 0, 1);
+    if (!rng->low || !rng->high) {
+        return r;
+    }
+    int loType = TYPE_ERROR, hiType = TYPE_ERROR;
+    int loVal = constNodeOrdinalValue(rng->low, loType);
+    int hiVal = constNodeOrdinalValue(rng->high, hiType);
+    if (loType == TYPE_REAL || hiType == TYPE_REAL) {
+        typeChecker.reportError("subrange bounds must not be Real");
+        r.typeCode = TYPE_ERROR;
+    }
+    if (loType != TYPE_ERROR && hiType != TYPE_ERROR && loType != hiType) {
+        typeChecker.reportError("subrange bounds must have the same type");
+    }
+    if (loVal > hiVal) {
+        typeChecker.reportError("subrange lower bound must be <= upper bound");
+    }
+    if (rng->low)  rng->low->type  = (loType == TYPE_ERROR) ? TYPE_INTEGER : loType;
+    if (rng->high) rng->high->type = (hiType == TYPE_ERROR) ? TYPE_INTEGER : hiType;
+    return r;
+}
+
+SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveArrayType(ArrayTypeNode* arr) {
+    ResolvedType r(TYPE_ARRAY, 0, 0);
+    int low = 0, high = 0, xtyp = TYPE_INTEGER;
+
+    if (arr->indexType) {
+        if (auto* rng = dynamic_cast<RangeTypeNode*>(arr->indexType)) {
+            int loT = TYPE_INTEGER, hiT = TYPE_INTEGER;
+            low = constNodeOrdinalValue(rng->low, loT);
+            high = constNodeOrdinalValue(rng->high, hiT);
+            xtyp = (loT != TYPE_ERROR) ? loT : TYPE_INTEGER;
+            if (xtyp == TYPE_REAL) {
+                typeChecker.reportError("array index type cannot be Real");
+                xtyp = TYPE_INTEGER;
+            }
+            if (low > high) {
+                typeChecker.reportError("array range lower must be <= upper");
+            }
+            rng->type = TYPE_SUBRANGE;
+            rng->size = 1;
+            arr->indexType->type = TYPE_SUBRANGE;
+        } else if (auto* simple = dynamic_cast<SimpleTypeNode*>(arr->indexType)) {
+            ResolvedType irt = resolveTypeNode(simple);
+            xtyp = irt.typeCode;
+            if (xtyp == TYPE_REAL) {
+                typeChecker.reportError("array index type cannot be Real");
+                xtyp = TYPE_INTEGER;
+            }
+            low = 0;
+            high = 0;
+        } else {
+            ResolvedType irt = resolveTypeNode(arr->indexType);
+            xtyp = irt.typeCode;
+        }
+    }
+
+    int etyp = TYPE_INTEGER;
+    int eref = 0;
+    int elsz = 1;
+    if (arr->elementType) {
+        ResolvedType er = resolveTypeNode(arr->elementType);
+        etyp = er.typeCode;
+        eref = er.ref;
+        elsz = (er.size > 0) ? er.size : 1;
+    }
+
+    AtabEntry ae;
+    ae.xtyp = xtyp;
+    ae.etyp = etyp;
+    ae.eref = (etyp == TYPE_ARRAY || etyp == TYPE_RECORD) ? eref : 0;
+    ae.low = low;
+    ae.high = high;
+    ae.elsz = elsz;
+    int span = (high - low + 1);
+    if (span < 0) span = 0;
+    ae.size = span * elsz;
+
+    int aidx = symTab.addToAtab(ae);
+    arr->atabIndex = aidx;
+    arr->ref = aidx;
+    arr->size = ae.size;
+    arr->type = TYPE_ARRAY;
+
+    r.ref = aidx;
+    r.size = ae.size;
+    return r;
+}
+
+SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveRecordType(RecordTypeNode* rec) {
+    ResolvedType r(TYPE_RECORD, 0, 0);
+
+    BtabEntry recBlock;
+    recBlock.lpar = 0;
+    int recBtab = symTab.addToBtab(recBlock);
+
+    int totalSize = 0;
+    int prevLast = -1;
+    int recLevel = symTab.getCurrentLevel() + 1;
+
+    for (auto* field : rec->fields) {
+        if (!field || !field->fieldType) continue;
+        ResolvedType fr = resolveTypeNode(field->fieldType);
+
+        TabEntry fe(field->name, OBJ_VARIABLE, fr.typeCode, recLevel, totalSize);
+        fe.ref = fr.ref;
+        fe.nrm = PARAM_VALUE;
+        fe.link = prevLast;
+        int fidx = symTab.addToTab(fe);
+        prevLast = fidx;
+        symTab.getBtab(recBtab).last = fidx;
+        field->tabIndex = fidx;
+        field->type = fr.typeCode;
+        field->lev = recLevel;
+
+        int sz = (fr.size > 0) ? fr.size : 1;
+        totalSize += sz;
+    }
+
+    symTab.getBtab(recBtab).vsze = totalSize;
+
+    rec->btabIndex = recBtab;
+    rec->ref = recBtab;
+    rec->size = totalSize;
+    rec->type = TYPE_RECORD;
+
+    r.ref = recBtab;
+    r.size = totalSize;
+    return r;
+}
+
+SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveEnumType(EnumeratedTypeNode* en) {
+    ResolvedType r(TYPE_ENUM, 0, 1);
+    int curLev = symTab.getCurrentLevel();
+    int btabIdx = symTab.getCurrentBtabIndex();
+    for (size_t i = 0; i < en->values.size(); i++) {
+        const std::string& nm = en->values[i];
+        int existing = symTab.lookupInCurrentScope(nm);
+        if (existing != -1) {
+            typeChecker.reportError("duplicate enumerated identifier: " + nm);
+            continue;
+        }
+        TabEntry e(nm, OBJ_CONSTANT, TYPE_ENUM, curLev, (int)i);
+        e.nrm = PARAM_VALUE;
+        e.ref = 0;
+        e.link = symTab.getBtab(btabIdx).last;
+        int idx = symTab.addToTab(e);
+        symTab.getBtab(btabIdx).last = idx;
+    }
+    en->type = TYPE_ENUM;
+    en->size = 1;
+    return r;
 }
 
 std::string SemanticAnalyzer::getTokenValue(const ParseNode& node) const {
@@ -1133,22 +1672,78 @@ void SemanticAnalyzer::printDecoratedAST(std::ostream& os, ASTNode* node, int de
             case TYPE_BOOLEAN: typeStr = "boolean"; break;
             case TYPE_CHAR:    typeStr = "char"; break;
             case TYPE_STRING:  typeStr = "string"; break;
+            case TYPE_ARRAY:   typeStr = "array"; break;
+            case TYPE_RECORD:  typeStr = "record"; break;
+            case TYPE_ENUM:    typeStr = "enum"; break;
+            case TYPE_SUBRANGE:typeStr = "subrange"; break;
             case TYPE_VOID:    typeStr = "void"; break;
             default:           typeStr = std::to_string(vd->type); break;
         }
         os << " type=" << typeStr << "\n";
     } else if (auto* cd = dynamic_cast<ConstDeclNode*>(node)) {
         os << indent << "ConstDecl: " << cd->name;
-        if (cd->value) os << " value=" << cd->value->type;
+        if (cd->tabIndex >= 0) os << " [tab=" << cd->tabIndex << "]";
+        std::string typeStr;
+        switch (cd->type) {
+            case TYPE_INTEGER: typeStr = "integer"; break;
+            case TYPE_REAL:    typeStr = "real"; break;
+            case TYPE_BOOLEAN: typeStr = "boolean"; break;
+            case TYPE_CHAR:    typeStr = "char"; break;
+            case TYPE_STRING:  typeStr = "string"; break;
+            default:           typeStr = std::to_string(cd->type); break;
+        }
+        os << " type=" << typeStr;
+        if (cd->value) {
+            if (auto* num = dynamic_cast<NumberNode*>(cd->value)) os << " value=" << num->value;
+            else if (auto* re = dynamic_cast<RealNode*>(cd->value)) os << " value=" << re->value;
+            else if (auto* ch = dynamic_cast<CharNode*>(cd->value)) os << " value='" << ch->value << "'";
+            else if (auto* st = dynamic_cast<StringNode*>(cd->value)) os << " value=\"" << st->value << "\"";
+            else if (auto* b = dynamic_cast<BoolNode*>(cd->value)) os << " value=" << (b->value ? "true" : "false");
+            else if (auto* vn = dynamic_cast<VarNode*>(cd->value)) os << " value=" << vn->name;
+        }
         os << "\n";
     } else if (auto* td = dynamic_cast<TypeDeclNode*>(node)) {
-        os << indent << "TypeDecl: " << td->name << "\n";
+        os << indent << "TypeDecl: " << td->name;
+        if (td->tabIndex >= 0) os << " [tab=" << td->tabIndex << "]";
+        std::string typeStr;
+        switch (td->type) {
+            case TYPE_INTEGER: typeStr = "integer"; break;
+            case TYPE_REAL:    typeStr = "real"; break;
+            case TYPE_BOOLEAN: typeStr = "boolean"; break;
+            case TYPE_CHAR:    typeStr = "char"; break;
+            case TYPE_STRING:  typeStr = "string"; break;
+            case TYPE_ARRAY:   typeStr = "array"; break;
+            case TYPE_RECORD:  typeStr = "record"; break;
+            case TYPE_ENUM:    typeStr = "enum"; break;
+            case TYPE_SUBRANGE:typeStr = "subrange"; break;
+            default:           typeStr = std::to_string(td->type); break;
+        }
+        os << " type=" << typeStr << "\n";
     } else if (auto* sd = dynamic_cast<SubprogramDeclNode*>(node)) {
         os << indent << (sd->isFunction ? "Function: " : "Procedure: ") << sd->name;
-        os << " [lev=" << sd->lev << "]\n";
+        if (sd->tabIndex >= 0) os << " [tab=" << sd->tabIndex << "]";
+        os << " lev=" << sd->lev;
+        if (sd->isFunction) {
+            std::string rt;
+            int t = sd->returnType ? sd->returnType->type : sd->type;
+            switch (t) {
+                case TYPE_INTEGER: rt = "integer"; break;
+                case TYPE_REAL:    rt = "real"; break;
+                case TYPE_BOOLEAN: rt = "boolean"; break;
+                case TYPE_CHAR:    rt = "char"; break;
+                case TYPE_STRING:  rt = "string"; break;
+                default:           rt = std::to_string(t); break;
+            }
+            os << " returns=" << rt;
+        }
+        os << "\n";
         if (!sd->params.empty()) {
             os << indent << "  Params:\n";
             for (auto* p : sd->params) printDecoratedAST(os, p, depth + 2);
+        }
+        if (sd->localDecls) {
+            os << indent << "  Locals:\n";
+            for (auto* d : sd->localDecls->decls) printDecoratedAST(os, d, depth + 2);
         }
         if (sd->body) printDecoratedAST(os, sd->body, depth + 1);
     } else if (auto* assign = dynamic_cast<AssignNode*>(node)) {
