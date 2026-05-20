@@ -41,8 +41,10 @@ struct ASTNode {
     int tabIndex;     // Index in symbol table
     int lev;          // Lexical level
     bool isLValue;    // Can be assigned to?
+    int line;         // Source line, 0 if unknown
+    int column;       // Source column, 0 if unknown
 
-    ASTNode() : type(TYPE_VOID), tabIndex(-1), lev(0), isLValue(false) {}
+    ASTNode() : type(TYPE_VOID), tabIndex(-1), lev(0), isLValue(false), line(0), column(0) {}
     virtual ~ASTNode() = default;
 };
 
@@ -55,6 +57,7 @@ struct VarDeclNode : DeclNode {
     struct TypeNode* varType;  // Pointer to type node
 
     VarDeclNode(const std::string& name) : name(name), varType(nullptr) {}
+    ~VarDeclNode() override;
 };
 
 struct ConstDeclNode : DeclNode {
@@ -62,6 +65,7 @@ struct ConstDeclNode : DeclNode {
     ASTNode* value;
 
     ConstDeclNode(const std::string& name) : name(name), value(nullptr) {}
+    ~ConstDeclNode() override;
 };
 
 struct TypeDeclNode : DeclNode {
@@ -69,6 +73,7 @@ struct TypeDeclNode : DeclNode {
     struct TypeNode* typeDef;
 
     TypeDeclNode(const std::string& name) : name(name), typeDef(nullptr) {}
+    ~TypeDeclNode() override;
 };
 
 struct DeclarationsNode : ASTNode {
@@ -113,6 +118,7 @@ struct FieldDeclNode : ASTNode {
     TypeNode* fieldType;
 
     FieldDeclNode(const std::string& name) : name(name), fieldType(nullptr) {}
+    ~FieldDeclNode() override;
 };
 
 struct RecordTypeNode : TypeNode {
@@ -202,16 +208,35 @@ struct BoolNode : ASTNode {
     BoolNode(bool v) : value(v) { type = TYPE_BOOLEAN; isLValue = false; }
 };
 
+struct VarComponentNode {
+    enum Kind {
+        ARRAY_ACCESS,
+        FIELD_ACCESS
+    };
+
+    Kind kind;
+    std::vector<ASTNode*> indices;
+    std::string fieldName;
+
+    VarComponentNode(Kind k) : kind(k) {}
+    ~VarComponentNode();
+};
+
 struct VarNode : ASTNode {
     std::string name;
     bool isArrayAccess;
     ASTNode* index;         // Array index expression (if isArrayAccess)
     std::string fieldName;  // Record field name (if accessing record field)
     VarNode* base;          // Base variable for chained access (e.g., a.b.c)
+    std::vector<VarComponentNode*> components;
 
     VarNode(const std::string& name)
         : name(name), isArrayAccess(false), index(nullptr), base(nullptr) {}
     ~VarNode() override;
+};
+
+struct EmptyStmtNode : ASTNode {
+    EmptyStmtNode() { type = TYPE_VOID; }
 };
 
 struct ProcCallNode : ASTNode {
@@ -298,9 +323,25 @@ inline DeclarationsNode::~DeclarationsNode() {
     for (auto* d : decls) delete d;
 }
 
+inline VarDeclNode::~VarDeclNode() {
+    delete varType;
+}
+
+inline ConstDeclNode::~ConstDeclNode() {
+    delete value;
+}
+
+inline TypeDeclNode::~TypeDeclNode() {
+    delete typeDef;
+}
+
 inline RangeTypeNode::~RangeTypeNode() {
     delete low;
     delete high;
+}
+
+inline FieldDeclNode::~FieldDeclNode() {
+    delete fieldType;
 }
 
 inline RecordTypeNode::~RecordTypeNode() {
@@ -324,6 +365,8 @@ inline BlockNode::~BlockNode() {
 }
 
 inline AssignNode::~AssignNode() {
+    delete target;
+    delete value;
 }
 
 inline BinOpNode::~BinOpNode() {
@@ -338,6 +381,11 @@ inline UnaryOpNode::~UnaryOpNode() {
 inline VarNode::~VarNode() {
     delete index;
     delete base;
+    for (auto* c : components) delete c;
+}
+
+inline VarComponentNode::~VarComponentNode() {
+    for (auto* i : indices) delete i;
 }
 
 inline ProcCallNode::~ProcCallNode() {
