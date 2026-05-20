@@ -47,11 +47,17 @@ class Lexer {
 private:
     vector<Token> tokens;
     int state;
+    int line;
+    int column;
+    int tokenColumn;
     char c;
 public:
     Lexer(){
         tokens = vector<Token>();
         state = STATE_START;
+        line = 1;
+        column = 1;
+        tokenColumn = 1;
     }
     void DFA(const string& filename); 
     vector<Token> getTokens() const { return tokens; }

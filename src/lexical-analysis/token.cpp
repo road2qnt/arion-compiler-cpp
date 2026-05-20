@@ -1,8 +1,9 @@
 #include "token.hpp"
-Token::Token(TokenType type, const string& value, int line) {
+Token::Token(TokenType type, const string& value, int line, int column) {
     this->type = type;
     this->value = value;
     this->line = line;
+    this->column = column;
 }
 string tokenToString(TokenType type) {
     switch (type) {

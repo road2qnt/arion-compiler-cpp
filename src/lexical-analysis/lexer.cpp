@@ -40,19 +40,23 @@ void Lexer::DFA(const string& filename) {
                     } else if (isWord(c)) {
                         allowDigitAfterPeriod = false;
                         state = STATE_KID; 
+                        tokenColumn = column;
                         lexeme += c;
                         char_processed = true;
                     } else if (isDigit(c)) {
                         allowDigitAfterPeriod = false;
                         state = STATE_NUM; 
+                        tokenColumn = column;
                         lexeme += c;
                         char_processed = true;
                     } else {
                         if (transisiFirstSymbol(c)) {
+                            tokenColumn = column;
                             lexeme += c;
                             char_processed = true;
                         } else {
                             state = STATE_ERR;
+                            tokenColumn = column;
                             lexeme += c;
                             char_processed = true;
                         }
@@ -249,6 +253,12 @@ void Lexer::DFA(const string& filename) {
                     }
                     break;
             }
+            if (char_processed && c == '\n') {
+                line++;
+                column = 1;
+            } else if (char_processed) {
+                column++;
+            }
         }
     }
     if (!lexeme.empty()) {
@@ -269,48 +279,48 @@ void Lexer::addToken(bool finish, int state, string& value) {
         switch (state){
             case STATE_KID: {
                 TokenType type = keyword(value);
-                if (type == TokenType::IDENT) tokens.push_back(Token(type, value));
-                else tokens.push_back(Token(type)); 
+                if (type == TokenType::IDENT) tokens.push_back(Token(type, value, line, tokenColumn));
+                else tokens.push_back(Token(type, "", line, tokenColumn)); 
                 break;
             }
             case STATE_NUM:
-                tokens.push_back(Token(TokenType::INTCON, value));
+                tokens.push_back(Token(TokenType::INTCON, value, line, tokenColumn));
                 break;
             case STATE_FLO:
-                tokens.push_back(Token(TokenType::REALCON, value));
+                tokens.push_back(Token(TokenType::REALCON, value, line, tokenColumn));
                 break;
             case STATE_CS2:
-                tokens.push_back(Token(TokenType::CHARCON, value));
+                tokens.push_back(Token(TokenType::CHARCON, value, line, tokenColumn));
                 break;
             case STATE_STR:
-                tokens.push_back(Token(TokenType::STRING, value));
+                tokens.push_back(Token(TokenType::STRING, value, line, tokenColumn));
                 break;
-            case STATE_PLS: tokens.push_back(Token(TokenType::PLUS)); break;
-            case STATE_MIN: tokens.push_back(Token(TokenType::MINUS)); break;
-            case STATE_TMS: tokens.push_back(Token(TokenType::TIMES)); break;
-            case STATE_DIV: tokens.push_back(Token(TokenType::RDIV)); break;
-            case STATE_EQ2: tokens.push_back(Token(TokenType::EQL)); break;
-            case STATE_LSS: tokens.push_back(Token(TokenType::LSS)); break;
-            case STATE_NEQ: tokens.push_back(Token(TokenType::NEQ)); break;
-            case STATE_LEQ: tokens.push_back(Token(TokenType::LEQ)); break;
-            case STATE_GTR: tokens.push_back(Token(TokenType::GTR)); break;
-            case STATE_GEQ: tokens.push_back(Token(TokenType::GEQ)); break;
-            case STATE_COM: tokens.push_back(Token(TokenType::COMMA)); break;
-            case STATE_COL: tokens.push_back(Token(TokenType::COLON)); break;
-            case STATE_BEC: tokens.push_back(Token(TokenType::BECOMES)); break;
-            case STATE_PRD: tokens.push_back(Token(TokenType::PERIOD)); break;
-            case STATE_SCO: tokens.push_back(Token(TokenType::SEMICOLON)); break;
-            case STATE_LPR: tokens.push_back(Token(TokenType::LPARENT)); break;
-            case STATE_RPR: tokens.push_back(Token(TokenType::RPARENT)); break;
-            case STATE_LBR: tokens.push_back(Token(TokenType::LBRACK)); break;
-            case STATE_RBR: tokens.push_back(Token(TokenType::RBRACK)); break;
+            case STATE_PLS: tokens.push_back(Token(TokenType::PLUS, "", line, tokenColumn)); break;
+            case STATE_MIN: tokens.push_back(Token(TokenType::MINUS, "", line, tokenColumn)); break;
+            case STATE_TMS: tokens.push_back(Token(TokenType::TIMES, "", line, tokenColumn)); break;
+            case STATE_DIV: tokens.push_back(Token(TokenType::RDIV, "", line, tokenColumn)); break;
+            case STATE_EQ2: tokens.push_back(Token(TokenType::EQL, "", line, tokenColumn)); break;
+            case STATE_LSS: tokens.push_back(Token(TokenType::LSS, "", line, tokenColumn)); break;
+            case STATE_NEQ: tokens.push_back(Token(TokenType::NEQ, "", line, tokenColumn)); break;
+            case STATE_LEQ: tokens.push_back(Token(TokenType::LEQ, "", line, tokenColumn)); break;
+            case STATE_GTR: tokens.push_back(Token(TokenType::GTR, "", line, tokenColumn)); break;
+            case STATE_GEQ: tokens.push_back(Token(TokenType::GEQ, "", line, tokenColumn)); break;
+            case STATE_COM: tokens.push_back(Token(TokenType::COMMA, "", line, tokenColumn)); break;
+            case STATE_COL: tokens.push_back(Token(TokenType::COLON, "", line, tokenColumn)); break;
+            case STATE_BEC: tokens.push_back(Token(TokenType::BECOMES, "", line, tokenColumn)); break;
+            case STATE_PRD: tokens.push_back(Token(TokenType::PERIOD, "", line, tokenColumn)); break;
+            case STATE_SCO: tokens.push_back(Token(TokenType::SEMICOLON, "", line, tokenColumn)); break;
+            case STATE_LPR: tokens.push_back(Token(TokenType::LPARENT, "", line, tokenColumn)); break;
+            case STATE_RPR: tokens.push_back(Token(TokenType::RPARENT, "", line, tokenColumn)); break;
+            case STATE_LBR: tokens.push_back(Token(TokenType::LBRACK, "", line, tokenColumn)); break;
+            case STATE_RBR: tokens.push_back(Token(TokenType::RBRACK, "", line, tokenColumn)); break;
             case STATE_KOMF:
             case STATE_LKOM:
-                tokens.push_back(Token(TokenType::COMMENT, value)); break;
+                tokens.push_back(Token(TokenType::COMMENT, value, line, tokenColumn)); break;
             case STATE_ERR:
-                tokens.push_back(Token(TokenType::UNKNOWN, value)); break;
+                tokens.push_back(Token(TokenType::UNKNOWN, value, line, tokenColumn)); break;
             default:
-                tokens.push_back(Token(TokenType::UNKNOWN, value)); break;
+                tokens.push_back(Token(TokenType::UNKNOWN, value, line, tokenColumn)); break;
         }
     }
 }

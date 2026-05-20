@@ -22,7 +22,8 @@ struct Token {
     TokenType type;
     string value;
     int line;
-    Token(TokenType type, const string& value = "", int line = 0);
+    int column;
+    Token(TokenType type, const string& value = "", int line = 0, int column = 0);
 };
 string tokenToString(TokenType type);
 TokenType keyword(const string& ident);
