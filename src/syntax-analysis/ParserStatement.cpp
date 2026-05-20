@@ -79,6 +79,18 @@ ParseNode Parser::parseStatement(){
             lookahead++;
             nextType = peekAhead(lookahead).type;
         }
+        while (nextType == TokenType::PERIOD && peekAhead(lookahead + 1).type == TokenType::IDENT) {
+            lookahead += 2;
+            nextType = peekAhead(lookahead).type;
+            while (!isStatementFollow(nextType) && nextType != TokenType::ERROR){
+                if (nextType == TokenType::BECOMES){
+                    assignmentStatement = true;
+                    break;
+                }
+                lookahead++;
+                nextType = peekAhead(lookahead).type;
+            }
+        }
 
         if (assignmentStatement){
             node.children.push_back(parseAssignmentStatement());
