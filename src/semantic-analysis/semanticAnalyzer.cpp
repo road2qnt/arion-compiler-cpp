@@ -423,6 +423,8 @@ ASTNode* SemanticAnalyzer::convertWhileStatement(const ParseNode& node) {
             wNode->condition = convertExpression(child);
         } else if (child.label == "<statement>") {
             wNode->body = convertStatement(child);
+        } else if (child.label == "<compound-statement>") {
+            wNode->body = convertCompoundStatement(child);
         }
     }
 
@@ -462,6 +464,8 @@ ASTNode* SemanticAnalyzer::convertForStatement(const ParseNode& node) {
             fNode->isDownto = true;
         } else if (node.children[i].label == "<statement>") {
             fNode->body = convertStatement(node.children[i]);
+        } else if (node.children[i].label == "<compound-statement>") {
+            fNode->body = convertCompoundStatement(node.children[i]);
         }
     }
 

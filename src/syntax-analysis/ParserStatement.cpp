@@ -18,6 +18,22 @@ namespace {
                type == TokenType::INTCON ||
                type == TokenType::REALCON;
     }
+
+    bool isStatementStart(TokenType type){
+        return type == TokenType::IDENT ||
+               type == TokenType::IFSY ||
+               type == TokenType::CASESY ||
+               type == TokenType::WHILESY ||
+               type == TokenType::REPEATSY ||
+               type == TokenType::FORSY;
+    }
+
+    bool consumesOwnTerminator(const ParseNode& statement){
+        if (statement.children.empty()) return false;
+
+        const std::string& label = statement.children[0].label;
+        return label == "<while-statement>" || label == "<for-statement>";
+    }
 }
 
 ParseNode Parser::parseCompoundStatement(){
@@ -36,8 +52,11 @@ ParseNode Parser::parseStatementList(){
 
     node.children.push_back(parseStatement());
 
-    while (match(TokenType::SEMICOLON)){
-        node.children.push_back(expect(TokenType::SEMICOLON));
+    while (match(TokenType::SEMICOLON) ||
+           (consumesOwnTerminator(node.children.back()) && isStatementStart(peek().type))){
+        if (match(TokenType::SEMICOLON)){
+            node.children.push_back(expect(TokenType::SEMICOLON));
+        }
         node.children.push_back(parseStatement());
     }
 
@@ -141,13 +160,14 @@ ParseNode Parser::parseCaseBlock(){
     return node;
 }
 ParseNode Parser::parseWhileStatement(){
-    // whilesy + expression + dosy + statement
+    // whilesy + expression + dosy + compound-statement + semicolon
     ParseNode node = ParseNode("<while-statement>");
 
     node.children.push_back(expect(TokenType::WHILESY));
     node.children.push_back(parseExpression());
     node.children.push_back(expect(TokenType::DOSY));
-    node.children.push_back(parseStatement());
+    node.children.push_back(parseCompoundStatement());
+    node.children.push_back(expect(TokenType::SEMICOLON));
 
     return node;
 }
@@ -163,7 +183,7 @@ ParseNode Parser::parseRepeatStatement(){
     return node;
 }
 ParseNode Parser::parseForStatement(){
-    // forsy + ident + becomes + expression + ( tosy | downtosy) + expression + dosy + statement
+    // forsy + ident + becomes + expression + (tosy | downtosy) + expression + dosy + compound-statement + semicolon
     ParseNode node = ParseNode("<for-statement>");
 
     node.children.push_back(expect(TokenType::FORSY));
@@ -179,7 +199,8 @@ ParseNode Parser::parseForStatement(){
     }
     node.children.push_back(parseExpression());
     node.children.push_back(expect(TokenType::DOSY));
-    node.children.push_back(parseStatement());
+    node.children.push_back(parseCompoundStatement());
+    node.children.push_back(expect(TokenType::SEMICOLON));
 
     return node;
 }

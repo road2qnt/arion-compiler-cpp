@@ -59,7 +59,7 @@ void Lexer::DFA(const string& filename) {
                     }
                     break;
                 case STATE_KID:
-                    if (isWord(c) || isDigit(c)){
+                    if (isWord(c)){
                         lexeme += c;
                         char_processed = true;
                     } else {
@@ -74,10 +74,6 @@ void Lexer::DFA(const string& filename) {
                         char_processed = true;
                     } else if (c == '.') {
                         state = STATE_DOT;
-                        lexeme += c;
-                        char_processed = true;
-                    } else if (isWord(c)) {
-                        state = STATE_ERR;
                         lexeme += c;
                         char_processed = true;
                     } else {
@@ -105,10 +101,6 @@ void Lexer::DFA(const string& filename) {
                     break;
                 case STATE_FLO:
                     if (isDigit(c)){
-                        lexeme += c;
-                        char_processed = true;
-                    } else if (isWord(c)) {
-                        state = STATE_ERR;
                         lexeme += c;
                         char_processed = true;
                     } else {
