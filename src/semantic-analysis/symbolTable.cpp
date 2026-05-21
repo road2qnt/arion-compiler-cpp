@@ -121,6 +121,23 @@ void SymbolTable::initializePredefinedIdentifiers() {
     btab.push_back(globalBlock);
     display[0] = 0;
 
+    // === Reserved Keywords ===
+    static const char* keywords[] = {
+        "and", "array", "begin", "case", "const", "div", "downto", "do",
+        "else", "end", "for", "function", "if", "mod", "not", "of",
+        "or", "procedure", "program", "record", "repeat",
+        "integer", "real", "boolean", "char", "string",
+        "then", "to", "type", "until", "var", "while"
+    };
+    for (const char* kw : keywords) {
+        TabEntry e(kw, OBJ_KEYWORD, TYPE_VOID, 0, 0);
+        e.nrm = PARAM_VALUE;
+        e.ref = 0;
+        e.link = -1;
+        addToTab(e);
+    }
+
+    // === Predefined Identifiers ===
     auto addPredef = [&](const std::string& id, int obj, int type, int adr) {
         TabEntry e(id, obj, type, 0, adr);
         e.nrm = PARAM_VALUE;
@@ -152,6 +169,7 @@ static const char* objLabel(int obj) {
         case OBJ_PROCEDURE: return "procedure";
         case OBJ_FUNCTION:  return "function";
         case OBJ_PROGRAM:   return "program";
+        case OBJ_KEYWORD:   return "keyword";
         default:            return "?";
     }
 }
