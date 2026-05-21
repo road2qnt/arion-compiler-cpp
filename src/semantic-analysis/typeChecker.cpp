@@ -61,8 +61,10 @@ bool TypeChecker::isString(int type) const {
     return type == TYPE_STRING;
 }
 
-bool TypeChecker::isValidRelationalOperator(int leftType, int rightType) const {
-    if (leftType == TYPE_BOOLEAN || rightType == TYPE_BOOLEAN) return false;
+bool TypeChecker::isValidRelationalOperator(const std::string& op, int leftType, int rightType) const {
+    if (leftType == TYPE_BOOLEAN || rightType == TYPE_BOOLEAN) {
+        return (op == "=" || op == "<>") && isCompatible(leftType, rightType);
+    }
     if (leftType == TYPE_RECORD || rightType == TYPE_RECORD) return false;
     if (leftType == TYPE_ARRAY  || rightType == TYPE_ARRAY)  return false;
     return isCompatible(leftType, rightType);
@@ -100,7 +102,7 @@ bool TypeChecker::isValidUnaryOperator(const std::string& op, int operandType) c
 
 int TypeChecker::getResultType(const std::string& op, int leftType, int rightType) const {
     if (op == "=" || op == "<>" || op == "<" || op == "<=" || op == ">" || op == ">=") {
-        if (isValidRelationalOperator(leftType, rightType)) {
+        if (isValidRelationalOperator(op, leftType, rightType)) {
             return TYPE_BOOLEAN;
         }
         return TYPE_ERROR;

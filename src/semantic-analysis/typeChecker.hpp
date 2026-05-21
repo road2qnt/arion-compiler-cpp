@@ -26,7 +26,7 @@ public:
     bool isReal(int type) const;
     bool isString(int type) const;
 
-    bool isValidRelationalOperator(int leftType, int rightType) const;
+    bool isValidRelationalOperator(const std::string& op, int leftType, int rightType) const;
     bool isValidArithmeticOperator(const std::string& op, int leftType, int rightType) const;
     bool isValidLogicalOperator(const std::string& op, int leftType, int rightType) const;
     bool isValidUnaryOperator(const std::string& op, int operandType) const;

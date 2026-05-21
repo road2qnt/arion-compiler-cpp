@@ -359,7 +359,7 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
     bool isLogical = (node->op == "and" || node->op == "or");
 
     if (isRelational) {
-        if (!typeChecker.isValidRelationalOperator(node->left->type, node->right->type)) {
+        if (!typeChecker.isValidRelationalOperator(node->op, node->left->type, node->right->type)) {
             typeChecker.reportError("operator " + node->op + " not defined for these types");
             node->type = TYPE_ERROR;
         } else {
@@ -483,7 +483,52 @@ void SemanticAnalyzer::visitFor(ForNode* node) {
 void SemanticAnalyzer::visitCase(CaseNode* node) {
     if (node->expression) visit(node->expression);
 
+    int exprType = TYPE_ERROR;
+    if (node->expression) {
+        exprType = node->expression->type;
+        if (exprType != TYPE_ERROR &&
+            !typeChecker.isOrdinal(exprType) && exprType != TYPE_SUBRANGE) {
+            typeChecker.reportError("case expression must be of ordinal type",node->expression->line);
+        }
+    }
+
+    std::vector<int> seenLabels;
+
     for (auto* branch : node->branches) {
+        for (auto* constant : branch->constants) {
+            if (!constant) continue;
+            visit(constant);
+
+            // Type compatibility with case expression
+            if (exprType != TYPE_ERROR && constant->type != TYPE_ERROR) {
+                if (!typeChecker.isCompatible(exprType, constant->type)) {
+                    typeChecker.reportError("case label type incompatible with case expression",constant->line);
+                }
+            }
+
+            // Duplicate label detection
+            int labelVal = 0;
+            bool hasVal = false;
+            if (auto* num = dynamic_cast<NumberNode*>(constant)) {
+                labelVal = num->value; hasVal = true;
+            } else if (auto* ch = dynamic_cast<CharNode*>(constant)) {
+                labelVal = (int)ch->value; hasVal = true;
+            } else if (auto* b = dynamic_cast<BoolNode*>(constant)) {
+                labelVal = b->value ? 1 : 0; hasVal = true;
+            } else if (auto* var = dynamic_cast<VarNode*>(constant)) {
+                if (var->tabIndex >= 0 && var->tabIndex < symTab.getTabSize()) {
+                    const TabEntry& e = symTab.getTab(var->tabIndex);
+                    if (e.obj == OBJ_CONSTANT) { labelVal = e.adr; hasVal = true; }
+                }
+            }
+            if (hasVal) {
+                if (std::find(seenLabels.begin(), seenLabels.end(), labelVal) != seenLabels.end()) {
+                    typeChecker.reportError("duplicate case label: " + std::to_string(labelVal),constant->line);
+                } else {
+                    seenLabels.push_back(labelVal);
+                }
+            }
+        }
         if (branch->statement) visit(branch->statement);
     }
 }
