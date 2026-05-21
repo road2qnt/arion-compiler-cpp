@@ -12,7 +12,12 @@ bool TypeChecker::isCompatible(int type1, int type2) const {
         return true;
     }
 
-    if (isNumeric(type1) && isNumeric(type2)) return true;
+    // Subrange is compatible with its base ordinal type
+    if (type1 == TYPE_SUBRANGE || type2 == TYPE_SUBRANGE) {
+        int other = (type1 == TYPE_SUBRANGE) ? type2 : type1;
+        return (other == TYPE_INTEGER || other == TYPE_CHAR ||
+                other == TYPE_BOOLEAN || other == TYPE_SUBRANGE);
+    }
 
     return false;
 }
@@ -20,7 +25,16 @@ bool TypeChecker::isCompatible(int type1, int type2) const {
 bool TypeChecker::isAssignmentCompatible(int targetType, int valueType) const {
     if (targetType == TYPE_REAL && valueType == TYPE_INTEGER) return true;
 
+    if (targetType == TYPE_SUBRANGE) {
+        return (valueType == TYPE_INTEGER || valueType == TYPE_CHAR ||
+                valueType == TYPE_BOOLEAN || valueType == TYPE_SUBRANGE);
+    }
+
     return isCompatible(targetType, valueType);
+}
+
+bool TypeChecker::isStringLengthCompatible(int len1, int len2) const {
+    return len1 == len2;
 }
 
 bool TypeChecker::isNumeric(int type) const {

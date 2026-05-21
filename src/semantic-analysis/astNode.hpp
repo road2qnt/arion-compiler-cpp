@@ -22,6 +22,7 @@
 #define OBJ_PROCEDURE  3
 #define OBJ_FUNCTION   4
 #define OBJ_PROGRAM    5
+#define OBJ_KEYWORD    6
 #define OBJ_PARAM      OBJ_VARIABLE
 
 #define PARAM_VALUE    1
@@ -429,4 +430,4 @@ inline ProgramNode::~ProgramNode() {
     delete body;
 }
 
-#endif // ASTNODE_HPP
+#endif

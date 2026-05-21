@@ -18,6 +18,7 @@ public:
 
     bool isCompatible(int type1, int type2) const;
     bool isAssignmentCompatible(int targetType, int valueType) const;
+    bool isStringLengthCompatible(int len1, int len2) const;
     bool isNumeric(int type) const;
     bool isOrdinal(int type) const;
     bool isBoolean(int type) const;
