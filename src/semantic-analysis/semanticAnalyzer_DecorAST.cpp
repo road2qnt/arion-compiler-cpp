@@ -147,7 +147,7 @@ void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
             ch->type = TYPE_CHAR;
         } else if (auto* str = dynamic_cast<StringNode*>(node->value)) {
             constType = TYPE_STRING;
-            constValue = 0;
+            constValue = (int)str->value.size();
             str->type = TYPE_STRING;
         } else if (auto* b = dynamic_cast<BoolNode*>(node->value)) {
             constType = TYPE_BOOLEAN;
@@ -298,6 +298,44 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
             if (!typeChecker.isAssignmentCompatible(node->target->type, node->value->type)) {
                 typeChecker.reportError("incompatible types");
             }
+
+            // String length check
+            if (node->target->type == TYPE_STRING && node->value->type == TYPE_STRING) {
+                auto getStrLen = [&](ASTNode* n) -> int {
+                    if (auto* sn = dynamic_cast<StringNode*>(n)) return (int)sn->value.size();
+                    if (n->tabIndex >= 0 && n->tabIndex < symTab.getTabSize()) {
+                        const TabEntry& e = symTab.getTab(n->tabIndex);
+                        if (e.type == TYPE_STRING && e.obj == OBJ_CONSTANT) return e.adr;
+                    }
+                    return -1;
+                };
+                int targetLen = getStrLen(node->target);
+                int valueLen  = getStrLen(node->value);
+                if (targetLen >= 0 && valueLen >= 0 &&
+                    !typeChecker.isStringLengthCompatible(targetLen, valueLen)) {
+                    typeChecker.reportError("string length mismatch: cannot assign string of length " +
+                                            std::to_string(valueLen) + " to string of length " +
+                                            std::to_string(targetLen), node->line);
+                }
+            }
+
+            // Subrange bounds check
+            if (node->target->type == TYPE_SUBRANGE) {
+                int tRef = -1;
+                if (node->target->tabIndex >= 0 && node->target->tabIndex < symTab.getTabSize()) {
+                    tRef = symTab.getTab(node->target->tabIndex).ref;
+                }
+                if (tRef >= 0 && tRef < symTab.getAtabSize()) {
+                    const AtabEntry& ae = symTab.getAtab(tRef);
+                    if (auto* num = dynamic_cast<NumberNode*>(node->value)) {
+                        if (num->value < ae.low || num->value > ae.high) {
+                            typeChecker.reportError("value " + std::to_string(num->value) +
+                                                    " out of subrange [" + std::to_string(ae.low) +
+                                                    ".." + std::to_string(ae.high) + "]", node->line);
+                        }
+                    }
+                }
+            }
         }
         node->type = node->value->type;
     } else {
@@ -325,6 +363,21 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
             typeChecker.reportError("operator " + node->op + " not defined for these types");
             node->type = TYPE_ERROR;
         } else {
+            if (node->left->type == TYPE_STRING && node->right->type == TYPE_STRING) {
+                auto getStrLen = [&](ASTNode* n) -> int {
+                    if (auto* sn = dynamic_cast<StringNode*>(n)) return (int)sn->value.size();
+                    if (n->tabIndex >= 0 && n->tabIndex < symTab.getTabSize()) {
+                        const TabEntry& e = symTab.getTab(n->tabIndex);
+                        if (e.type == TYPE_STRING && e.obj == OBJ_CONSTANT) return e.adr;
+                    }
+                    return -1;
+                };
+                int ll = getStrLen(node->left);
+                int rl = getStrLen(node->right);
+                if (ll >= 0 && rl >= 0 && !typeChecker.isStringLengthCompatible(ll, rl)) {
+                    typeChecker.reportError("string comparison requires operands of equal length");
+                }
+            }
             node->type = typeChecker.getResultType(node->op, node->left->type, node->right->type);
         }
     } else if (isArithmetic) {
@@ -731,6 +784,20 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveRangeType(RangeTypeNode*
     }
     if (rng->low)  rng->low->type  = (loType == TYPE_ERROR) ? TYPE_INTEGER : loType;
     if (rng->high) rng->high->type = (hiType == TYPE_ERROR) ? TYPE_INTEGER : hiType;
+
+    if (r.typeCode == TYPE_SUBRANGE && loVal <= hiVal) {
+        AtabEntry ae;
+        ae.xtyp = (loType != TYPE_ERROR) ? loType : TYPE_INTEGER;
+        ae.etyp = TYPE_VOID;
+        ae.eref = -1;
+        ae.low  = loVal;
+        ae.high = hiVal;
+        ae.elsz = 1;
+        ae.size = hiVal - loVal + 1;
+        int aidx = symTab.addToAtab(ae);
+        r.ref   = aidx;
+        rng->ref = aidx;
+    }
     return r;
 }
 

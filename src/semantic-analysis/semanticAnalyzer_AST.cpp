@@ -49,6 +49,10 @@ static std::string unquoteLiteral(const std::string& value) {
     return value;
 }
 
+static bool isParserErrorNode(const ParseNode& node) {
+    return node.isTerminal && node.label == "error";
+}
+
 static void setSource(ASTNode* node, int line, int column = 0) {
     if (!node) return;
     if (column == 0 && line > 9999) {
@@ -565,6 +569,11 @@ ASTNode* SemanticAnalyzer::convertStatement(const ParseNode& node) {
 
     const ParseNode& inner = node.children[0];
 
+    if (isParserErrorNode(inner)) {
+        typeChecker.reportError("syntax error in input; semantic analysis cannot proceed for this statement", inner.line);
+        return nullptr;
+    }
+
     if (inner.label == "<assignment-statement>") {
         return convertAssignmentStatement(inner);
     }
@@ -860,6 +869,11 @@ ASTNode* SemanticAnalyzer::convertFactor(const ParseNode& node) {
     if (node.children.empty()) return nullptr;
 
     const ParseNode& inner = node.children[0];
+
+    if (isParserErrorNode(inner)) {
+        typeChecker.reportError("syntax error in input; semantic analysis cannot proceed for this expression", inner.line);
+        return nullptr;
+    }
 
     if (inner.isTerminal) {
         ASTNode* scalar = terminalToScalarNode(inner);
