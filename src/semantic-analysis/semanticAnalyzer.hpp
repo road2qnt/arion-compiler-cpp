@@ -29,6 +29,7 @@ public:
     bool hasErrors() const { return typeChecker.hasErrors(); }
 
 private:
+    // Field (Private)
     SymbolTable symTab;
     TypeChecker typeChecker;
     ProgramNode* astRoot;

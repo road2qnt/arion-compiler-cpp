@@ -72,9 +72,10 @@ void SemanticAnalyzer::visitProgram(ProgramNode* node) {
         node->tabIndex = existing;
     }
 
+    // Visit Declaration and Body --- Scope (masuk ke program)
+    symTab.pushScope();
     if (node->declarations) visit(node->declarations);
 
-    symTab.pushScope();
     int bodyBtab = symTab.getCurrentBtabIndex();
     if (node->tabIndex >= 0) {
         symTab.getTab(node->tabIndex).ref = bodyBtab;
@@ -245,6 +246,12 @@ void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
     int paramAdr = 0;
     for (auto* param : node->params) {
         if (!param) continue;
+        int existingParam = symTab.lookupInCurrentScope(param->name);
+        if (existingParam != -1) {
+            typeChecker.reportError("duplicate parameter: " + param->name);
+            continue;
+        }
+
         ResolvedType pr;
         if (param->varType) {
             pr = resolveTypeNode(param->varType);
@@ -923,9 +930,17 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveRecordType(RecordTypeNod
     int totalSize = 0;
     int prevLast = -1;
     int recLevel = symTab.getCurrentLevel() + 1;
+    std::vector<std::string> fieldNames;
 
     for (auto* field : rec->fields) {
         if (!field || !field->fieldType) continue;
+        std::string normalizedName = toLowerCopy(field->name);
+        if (std::find(fieldNames.begin(), fieldNames.end(), normalizedName) != fieldNames.end()) {
+            typeChecker.reportError("duplicate record field: " + field->name);
+            continue;
+        }
+        fieldNames.push_back(normalizedName);
+
         ResolvedType fr = resolveTypeNode(field->fieldType);
 
         TabEntry fe(field->name, OBJ_VARIABLE, fr.typeCode, recLevel, totalSize);

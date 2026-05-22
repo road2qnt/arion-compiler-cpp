@@ -350,7 +350,7 @@ SubprogramDeclNode* SemanticAnalyzer::convertSubprogramDecl(const ParseNode& nod
                     pnames.push_back(getTokenValue(pc));
                 }
             } else {
-                if (pc.label == "<type>") {
+                if (pc.label == "<type>" || pc.label == "<array-type>") {
                     pType = convertType(pc);
                 } else if (pc.isTerminal && pc.label.rfind("ident", 0) == 0 && !pType) {
                     pType = new SimpleTypeNode(getTokenValue(pc));
