@@ -191,6 +191,14 @@ static const char* typeLabel(int t) {
     }
 }
 
+static const char* paramModeLabel(int nrm) {
+    return nrm == PARAM_REF ? "ref" : "value";
+}
+
+static std::string indexLabel(int idx) {
+    return idx < 0 ? "-" : std::to_string(idx);
+}
+
 void SymbolTable::printSymbolTable(std::ostream& os) const {
     os << "\n=== Symbol Table (tab) ===\n";
     os << std::left
@@ -198,26 +206,25 @@ void SymbolTable::printSymbolTable(std::ostream& os) const {
        << std::setw(14) << "id"
        << std::setw(11) << "obj"
        << std::setw(10) << "type"
-       << std::setw(5)  << "ref"
-       << std::setw(5)  << "nrm"
+       << std::setw(6)  << "ref"
+       << std::setw(8)  << "nrm"
        << std::setw(5)  << "lev"
        << std::setw(7)  << "adr"
        << std::setw(5)  << "link" << "\n";
-    os << std::string(66, '-') << "\n";
+    os << std::string(70, '-') << "\n";
 
     for (size_t i = 0; i < tab.size(); ++i) {
         const auto& e = tab[i];
-        int link = (e.link < 0) ? 0 : e.link;
         os << std::left
            << std::setw(4)  << i
            << std::setw(14) << e.id
            << std::setw(11) << objLabel(e.obj)
            << std::setw(10) << typeLabel(e.type)
-           << std::setw(5)  << e.ref
-           << std::setw(5)  << e.nrm
+           << std::setw(6)  << indexLabel(e.ref)
+           << std::setw(8)  << paramModeLabel(e.nrm)
            << std::setw(5)  << e.lev
            << std::setw(7)  << e.adr
-           << std::setw(5)  << link << "\n";
+           << std::setw(5)  << indexLabel(e.link) << "\n";
     }
 
     os << "\n=== Block Table (btab) ===\n";
@@ -231,27 +238,25 @@ void SymbolTable::printSymbolTable(std::ostream& os) const {
 
     for (size_t i = 0; i < btab.size(); ++i) {
         const auto& b = btab[i];
-        int last = (b.last < 0) ? 0 : b.last;
-        int lpar = (b.lpar < 0) ? 0 : b.lpar;
         os << std::left
            << std::setw(5) << i
-           << std::setw(7) << last
-           << std::setw(7) << lpar
+           << std::setw(7) << indexLabel(b.last)
+           << std::setw(7) << indexLabel(b.lpar)
            << std::setw(7) << b.psze
            << std::setw(7) << b.vsze << "\n";
     }
 
     os << "\n=== Array Table (atab) ===\n";
     os << std::left
-       << std::setw(5) << "idx"
-       << std::setw(7) << "xtyp"
-       << std::setw(7) << "etyp"
-       << std::setw(7) << "eref"
-       << std::setw(7) << "low"
-       << std::setw(7) << "high"
-       << std::setw(7) << "elsz"
-       << std::setw(7) << "size" << "\n";
-    os << std::string(47, '-') << "\n";
+       << std::setw(5)  << "idx"
+       << std::setw(11) << "xtyp"
+       << std::setw(11) << "etyp"
+       << std::setw(7)  << "eref"
+       << std::setw(7)  << "low"
+       << std::setw(7)  << "high"
+       << std::setw(7)  << "elsz"
+       << std::setw(7)  << "size" << "\n";
+    os << std::string(62, '-') << "\n";
 
     if (atab.empty()) {
         os << "(empty)\n";
@@ -259,14 +264,14 @@ void SymbolTable::printSymbolTable(std::ostream& os) const {
         for (size_t i = 0; i < atab.size(); ++i) {
             const auto& a = atab[i];
             os << std::left
-               << std::setw(5) << i
-               << std::setw(7) << a.xtyp
-               << std::setw(7) << a.etyp
-               << std::setw(7) << a.eref
-               << std::setw(7) << a.low
-               << std::setw(7) << a.high
-               << std::setw(7) << a.elsz
-               << std::setw(7) << a.size << "\n";
+               << std::setw(5)  << i
+               << std::setw(11) << typeLabel(a.xtyp)
+               << std::setw(11) << typeLabel(a.etyp)
+               << std::setw(7)  << indexLabel(a.eref)
+               << std::setw(7)  << a.low
+               << std::setw(7)  << a.high
+               << std::setw(7)  << a.elsz
+               << std::setw(7)  << a.size << "\n";
         }
     }
 }

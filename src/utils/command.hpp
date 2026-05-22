@@ -80,16 +80,16 @@ bool isAllChoice(const string& choice) {
 
 int runInteractiveMode() {
     cout << "Pilih mode:" << endl;
-    cout << "1. lexical" << endl;
-    cout << "2. syntax" << endl;
-    cout << "3. keduanya" << endl;
+    cout << "1. Lexical ONLY" << endl;
+    cout << "2. Syntax ONLY" << endl;
+    cout << "3. Lexical + Syntax Analysis" << endl;
     cout << "4. semantic" << endl;
     cout << "5. semua" << endl;
 
     string choice = askLine("Pilihan: ");
     if (isLexicalChoice(choice)) {
         std::cout << "=== [!] Input: Source Code ===" << endl;
-        std::cout << "=== [!] Ouput: File Token ===" << endl;
+        std::cout << "=== [!] Output: File Token ===" << endl;
         std::cout << "=== Input dan Output file berada di folder milestone-1 [test/milestone-1] ===" << endl;
         string inputFile = askLine("File input source: ");
         string outputFile = askLine("File output lexical (kosongkan kalau tidak mau print ke file): ");
@@ -103,7 +103,7 @@ int runInteractiveMode() {
 
     if (isSyntaxChoice(choice)) {
         std::cout << "=== [!] Input: File Token ===" << endl;
-        std::cout << "=== [!] Ouput: Parse Tree ===" << endl;
+        std::cout << "=== [!] Output: Parse Tree ===" << endl;
         std::cout << "=== Input dan Output file berada di folder milestone-2 [test/milestone-2] ===" << endl;
         string inputFile = askLine("File input token hasil lexical: ");
         string outputFile = askLine("File output syntax (kosongkan kalau tidak mau print ke file): ");
@@ -139,7 +139,7 @@ int runInteractiveMode() {
 
     if (isSemanticChoice(choice)) {
         std::cout << "=== [!] Input: Source Code ===" << endl;
-        std::cout << "=== [!] Ouput: Decorated AST ===" << endl;
+        std::cout << "=== [!] Output: Decorated AST, Symbol Table, Semantic Errors ===" << endl;
         std::cout << "=== Input file berada di folder milestone-1 [test/milestone-1] ===" << endl;
         std::cout << "=== Output file berada di folder milestone-3 [test/milestone-3] ===" << endl;
         string inputFile = askLine("File input source: ");
