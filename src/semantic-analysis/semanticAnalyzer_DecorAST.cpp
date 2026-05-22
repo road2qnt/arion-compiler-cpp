@@ -13,6 +13,15 @@ static std::string toLowerCopy(const std::string& s) {
     return r;
 }
 
+static bool needsTypeRef(int type) {
+    return type == TYPE_ARRAY || type == TYPE_RECORD || type == TYPE_SUBRANGE;
+}
+
+static int valueTypeRef(const TabEntry& e) {
+    if (e.obj == OBJ_FUNCTION && needsTypeRef(e.type)) return e.adr;
+    return e.ref;
+}
+
 void SemanticAnalyzer::visit(ASTNode* node) {
     if (!node) return;
 
@@ -322,7 +331,7 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
 
         const TabEntry& base = symTab.getTab(node->target->tabIndex);
         int currentType = base.type;
-        int currentRef = base.ref;
+        int currentRef = valueTypeRef(base);
 
         for (auto* component : node->target->components) {
             if (!component) continue;
@@ -425,6 +434,16 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
     };
 
     auto subrangeRefOf = [&](ASTNode* n) -> int {
+        if (auto* call = dynamic_cast<ProcCallNode*>(n)) {
+            if (call->tabIndex >= 0 && call->tabIndex < symTab.getTabSize()) {
+                const TabEntry& e = symTab.getTab(call->tabIndex);
+                if (e.obj == OBJ_FUNCTION && e.type == TYPE_SUBRANGE) {
+                    return valueTypeRef(e);
+                }
+            }
+            return -1;
+        }
+
         auto* var = dynamic_cast<VarNode*>(n);
         if (!var || var->tabIndex < 0 || var->tabIndex >= symTab.getTabSize()) {
             return -1;
@@ -432,7 +451,7 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
 
         const TabEntry& base = symTab.getTab(var->tabIndex);
         int currentType = base.type;
-        int currentRef = base.ref;
+        int currentRef = valueTypeRef(base);
 
         for (auto* component : var->components) {
             if (!component) continue;
@@ -585,21 +604,46 @@ void SemanticAnalyzer::visitFor(ForNode* node) {
 
     int loopVarIdx = symTab.lookup(node->varName);
     int loopVarType = TYPE_ERROR;
+    int loopVarRef = -1;
     if (loopVarIdx == -1) {
         typeChecker.reportError("undeclared loop variable: " + node->varName);
+        node->type = TYPE_ERROR;
     } else {
         const TabEntry& e = symTab.getTab(loopVarIdx);
         loopVarType = e.type;
+        loopVarRef = e.ref;
         if (e.obj != OBJ_VARIABLE) {
             typeChecker.reportError("for loop variable must be a variable: " + node->varName);
+            node->type = TYPE_ERROR;
         } else if (!typeChecker.isOrdinal(e.type)) {
             typeChecker.reportError("for loop variable must be ordinal: " + node->varName);
+            node->type = TYPE_ERROR;
+        } else {
+            node->type = TYPE_VOID;
         }
         node->varTabIndex = loopVarIdx;
-        node->type = TYPE_VOID;
     }
 
     if (node->body) visit(node->body);
+
+    auto checkLoopBound = [&](ASTNode* bound, const std::string& label) {
+        if (!bound || loopVarType != TYPE_SUBRANGE ||
+            loopVarRef < 0 || loopVarRef >= symTab.getAtabSize()) {
+            return;
+        }
+
+        int valueType = TYPE_ERROR;
+        int value = constNodeOrdinalValue(bound, valueType);
+        if (valueType == TYPE_ERROR || valueType == TYPE_REAL) return;
+
+        const AtabEntry& ae = symTab.getAtab(loopVarRef);
+        if (value < ae.low || value > ae.high) {
+            typeChecker.reportError("for loop " + label + " value " +
+                                    std::to_string(value) + " out of subrange [" +
+                                    std::to_string(ae.low) + ".." +
+                                    std::to_string(ae.high) + "]", node->line);
+        }
+    };
 
     if (node->start && !typeChecker.isOrdinal(node->start->type)) {
         typeChecker.reportError("for loop starting value must be an ordinal type");
@@ -610,11 +654,15 @@ void SemanticAnalyzer::visitFor(ForNode* node) {
     if (loopVarIdx != -1 && node->start && node->start->type != TYPE_ERROR) {
         if (!typeChecker.isAssignmentCompatible(loopVarType, node->start->type)) {
             typeChecker.reportError("for loop start value incompatible with loop variable");
+        } else {
+            checkLoopBound(node->start, "start");
         }
     }
     if (loopVarIdx != -1 && node->end && node->end->type != TYPE_ERROR) {
         if (!typeChecker.isAssignmentCompatible(loopVarType, node->end->type)) {
             typeChecker.reportError("for loop end value incompatible with loop variable");
+        } else {
+            checkLoopBound(node->end, "end");
         }
     }
 }
@@ -631,6 +679,66 @@ void SemanticAnalyzer::visitCase(CaseNode* node) {
         }
     }
 
+    auto expressionSubrangeRef = [&]() -> int {
+        if (auto* call = dynamic_cast<ProcCallNode*>(node->expression)) {
+            if (call->tabIndex >= 0 && call->tabIndex < symTab.getTabSize()) {
+                const TabEntry& e = symTab.getTab(call->tabIndex);
+                if (e.obj == OBJ_FUNCTION && e.type == TYPE_SUBRANGE) {
+                    return valueTypeRef(e);
+                }
+            }
+            return -1;
+        }
+
+        auto* var = dynamic_cast<VarNode*>(node->expression);
+        if (!var || var->tabIndex < 0 || var->tabIndex >= symTab.getTabSize()) {
+            return -1;
+        }
+
+        const TabEntry& base = symTab.getTab(var->tabIndex);
+        int currentType = base.type;
+        int currentRef = valueTypeRef(base);
+
+        for (auto* component : var->components) {
+            if (!component) continue;
+
+            if (component->kind == VarComponentNode::ARRAY_ACCESS) {
+                for (size_t i = 0; i < component->indices.size(); i++) {
+                    if (currentType != TYPE_ARRAY ||
+                        currentRef < 0 || currentRef >= symTab.getAtabSize()) {
+                        return -1;
+                    }
+                    const AtabEntry& ae = symTab.getAtab(currentRef);
+                    currentType = ae.etyp;
+                    currentRef = ae.eref;
+                }
+            } else if (component->kind == VarComponentNode::FIELD_ACCESS) {
+                if (currentType != TYPE_RECORD ||
+                    currentRef < 0 || currentRef >= symTab.getBtabSize()) {
+                    return -1;
+                }
+
+                int cur = symTab.getBtab(currentRef).last;
+                int found = -1;
+                std::string target = toLowerCopy(component->fieldName);
+                while (cur > 0 && cur < symTab.getTabSize()) {
+                    if (toLowerCopy(symTab.getTab(cur).id) == target) {
+                        found = cur;
+                        break;
+                    }
+                    cur = symTab.getTab(cur).link;
+                }
+                if (found == -1) return -1;
+
+                const TabEntry& field = symTab.getTab(found);
+                currentType = field.type;
+                currentRef = field.ref;
+            }
+        }
+
+        return (currentType == TYPE_SUBRANGE) ? currentRef : -1;
+    };
+
     std::vector<int> seenLabels;
 
     for (auto* branch : node->branches) {
@@ -638,29 +746,32 @@ void SemanticAnalyzer::visitCase(CaseNode* node) {
             if (!constant) continue;
             visit(constant);
 
-            // Type compatibility with case expression
-            if (exprType != TYPE_ERROR && constant->type != TYPE_ERROR) {
+            int labelType = TYPE_ERROR;
+            int labelVal = constNodeOrdinalValue(constant, labelType);
+            bool labelIsOrdinal = labelType != TYPE_ERROR && typeChecker.isOrdinal(labelType);
+
+            if (constant->type != TYPE_ERROR && !labelIsOrdinal) {
+                typeChecker.reportError("case label must be of ordinal type", constant->line);
+            }
+
+            if (exprType != TYPE_ERROR && constant->type != TYPE_ERROR && labelIsOrdinal) {
                 if (!typeChecker.isCompatible(exprType, constant->type)) {
                     typeChecker.reportError("case label type incompatible with case expression",constant->line);
                 }
             }
 
-            // Duplicate label detection
-            int labelVal = 0;
-            bool hasVal = false;
-            if (auto* num = dynamic_cast<NumberNode*>(constant)) {
-                labelVal = num->value; hasVal = true;
-            } else if (auto* ch = dynamic_cast<CharNode*>(constant)) {
-                labelVal = (int)ch->value; hasVal = true;
-            } else if (auto* b = dynamic_cast<BoolNode*>(constant)) {
-                labelVal = b->value ? 1 : 0; hasVal = true;
-            } else if (auto* var = dynamic_cast<VarNode*>(constant)) {
-                if (var->tabIndex >= 0 && var->tabIndex < symTab.getTabSize()) {
-                    const TabEntry& e = symTab.getTab(var->tabIndex);
-                    if (e.obj == OBJ_CONSTANT) { labelVal = e.adr; hasVal = true; }
+            int exprSubrangeRef = expressionSubrangeRef();
+            if (exprType == TYPE_SUBRANGE && labelIsOrdinal &&
+                exprSubrangeRef >= 0 && exprSubrangeRef < symTab.getAtabSize()) {
+                const AtabEntry& ae = symTab.getAtab(exprSubrangeRef);
+                if (labelVal < ae.low || labelVal > ae.high) {
+                    typeChecker.reportError("case label " + std::to_string(labelVal) +
+                                            " out of subrange [" + std::to_string(ae.low) +
+                                            ".." + std::to_string(ae.high) + "]", constant->line);
                 }
             }
-            if (hasVal) {
+
+            if (labelIsOrdinal) {
                 if (std::find(seenLabels.begin(), seenLabels.end(), labelVal) != seenLabels.end()) {
                     typeChecker.reportError("duplicate case label: " + std::to_string(labelVal),constant->line);
                 } else {
@@ -689,14 +800,28 @@ void SemanticAnalyzer::visitProcCall(ProcCallNode* node) {
 
     node->tabIndex = tabIdx;
     node->type = e.type;
+    node->lev = e.lev;
 
     for (auto* arg : node->args) {
         if (arg) visit(arg);
     }
 
-    bool variadic = (e.lev == 0 && (node->name == "writeln" || node->name == "readln" ||
-                                    node->name == "write"   || node->name == "read"));
-    if (variadic) return;
+    std::string builtinName = toLowerCopy(e.id);
+    bool builtinRead = (e.lev == 0 && (builtinName == "read" || builtinName == "readln"));
+    bool builtinWrite = (e.lev == 0 && (builtinName == "write" || builtinName == "writeln"));
+    if (builtinRead || builtinWrite) {
+        if (builtinRead) {
+            for (size_t i = 0; i < node->args.size(); i++) {
+                ASTNode* arg = node->args[i];
+                if (arg && arg->type != TYPE_ERROR && !arg->isLValue) {
+                    typeChecker.reportError("call to '" + node->name + "': argument " +
+                                            std::to_string(i + 1) +
+                                            " must be a variable for read/readln", arg->line);
+                }
+            }
+        }
+        return;
+    }
 
     int subBtab = e.ref;
     if (subBtab <= 0 || subBtab >= symTab.getBtabSize()) return;
@@ -757,7 +882,7 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
 
     if (!node->components.empty()) {
         int currentType = node->type;
-        int currentRef = e.ref;
+        int currentRef = valueTypeRef(e);
 
         for (auto* component : node->components) {
             if (!component) continue;
@@ -816,8 +941,9 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
 
     if (node->isArrayAccess && node->index) {
         visit(node->index);
-        if (e.type == TYPE_ARRAY && e.ref >= 0 && e.ref < symTab.getAtabSize()) {
-            const AtabEntry& a = symTab.getAtab(e.ref);
+        int baseRef = valueTypeRef(e);
+        if (e.type == TYPE_ARRAY && baseRef >= 0 && baseRef < symTab.getAtabSize()) {
+            const AtabEntry& a = symTab.getAtab(baseRef);
             if (node->index->type != TYPE_ERROR &&
                 !typeChecker.isCompatible(a.xtyp, node->index->type)) {
                 typeChecker.reportError("array '" + node->name + "' index type mismatch");
@@ -831,8 +957,9 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
     }
 
     if (!node->fieldName.empty()) {
-        if (e.type == TYPE_RECORD && e.ref >= 0 && e.ref < symTab.getBtabSize()) {
-            int last = symTab.getBtab(e.ref).last;
+        int baseRef = valueTypeRef(e);
+        if (e.type == TYPE_RECORD && baseRef >= 0 && baseRef < symTab.getBtabSize()) {
+            int last = symTab.getBtab(baseRef).last;
             int found = -1;
             while (last > 0 && last < symTab.getTabSize()) {
                 if (symTab.getTab(last).id == node->fieldName) { found = last; break; }

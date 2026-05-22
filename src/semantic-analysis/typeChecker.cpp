@@ -42,7 +42,8 @@ bool TypeChecker::isNumeric(int type) const {
 }
 
 bool TypeChecker::isOrdinal(int type) const {
-    return type == TYPE_INTEGER || type == TYPE_CHAR || type == TYPE_BOOLEAN;
+    return type == TYPE_INTEGER || type == TYPE_CHAR ||
+           type == TYPE_BOOLEAN || type == TYPE_SUBRANGE;
 }
 
 bool TypeChecker::isBoolean(int type) const {
