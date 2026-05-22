@@ -1,6 +1,8 @@
-program Test;
+program Hello;
 var
-    x : integer;
+a, b: integer;
 begin
-    x := 10
+a := 5;
+b := a + 10;
+writeln('Result = ', b);
 end.

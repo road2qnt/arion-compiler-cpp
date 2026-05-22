@@ -1,6 +1,10 @@
-program Undeclared;
+program Comments;
+{ ini komentar kurung kurawal }
 var
-    x : integer;
+a: integer;
 begin
-    y := 10
+(* ini komentar
+   bintang kurung *)
+a := 42;
+{ komentar lagi }
 end.

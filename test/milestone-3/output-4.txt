@@ -1,94 +1,88 @@
-programsy
-ident(Duplicate)
-semicolon
-varsy
-ident(x)
-colon
-ident(integer)
-semicolon
-ident(x)
-colon
-ident(real)
-semicolon
-beginsy
-ident(x)
-becomes
-intcon(10)
-endsy
-period
-<Program>
-├── <Program-header>
-│   ├── programsy
-│   ├── ident(Duplicate)
-│   └── semicolon
-├── <declaration-part>
-│   └── <var-declaration>
-│       ├── varsy
-│       ├── <identifier-list>
-│       │   └── ident(x)
-│       ├── colon
-│       ├── <type>
-│       │   └── ident(integer)
-│       ├── semicolon
-│       ├── <identifier-list>
-│       │   └── ident(x)
-│       ├── colon
-│       ├── <type>
-│       │   └── ident(real)
-│       └── semicolon
-├── <compound-statement>
-│   ├── beginsy
-│   ├── <statement-list>
-│   │   └── <statement>
-│   │       └── <assignment-statement>
-│   │           ├── <variable>
-│   │           │   └── ident(x)
-│   │           ├── becomes
-│   │           └── <expression>
-│   │               └── <simple-expression>
-│   │                   └── <term>
-│   │                       └── <factor>
-│   │                           └── intcon(10)
-│   └── endsy
-└── period
 
 ========== Decorated AST ==========
-Program: Duplicate [tab=11]
-  Declarations:
-    VarDecl: x [tab=12] type=integer
-    VarDecl: x type=void
-  Block: [1 statements]
-    Assign:
-      Var: x [tab=12] type=integer lev=0 lval=true
-      Number: 10
+Program: Literals [tab=43] type=void lev=0 line=1:1
+├── Declarations: [3 declarations] line=2:1
+│   ├── VarDecl: c [tab=44] type=char lev=1 line=3:4 <type simple=char resolved=char>
+│   ├── VarDecl: s [tab=45] type=string lev=1 line=4:4 <type simple=string resolved=string>
+│   ├── VarDecl: r [tab=46] type=real lev=1 line=5:4 <type simple=real resolved=real>
+├── Block: [7 statements] line=7:1
+│   ├── Assign: type=char line=7:1
+│   │   ├── Var: c [tab=44] type=char lev=1 lval=true line=7:1
+│   │   ├── Char: 'A' type=char line=7:6
+│   ├── Assign: type=string line=8:1
+│   │   ├── Var: s [tab=45] type=string lev=1 lval=true line=8:1
+│   │   ├── String: "Hello World" type=string length=11 line=8:6
+│   ├── Assign: type=real line=9:1
+│   │   ├── Var: r [tab=46] type=real lev=1 lval=true line=9:1
+│   │   ├── Real: 3.14 type=real line=9:6
+│   ├── Call: writeln [tab=39] type=void lev=0 args=1 line=10:1
+│   │   ├── Var: c [tab=44] type=char lev=1 lval=true line=10:9
+│   ├── Call: writeln [tab=39] type=void lev=0 args=1 line=11:1
+│   │   ├── Var: s [tab=45] type=string lev=1 lval=true line=11:9
+│   ├── Call: writeln [tab=39] type=void lev=0 args=1 line=12:1
+│   │   ├── BinOp: + type=real line=12:11
+│   │   │   ├── Var: r [tab=46] type=real lev=1 lval=true line=12:9
+│   │   │   ├── Real: 100.05 type=real line=12:13
+│   ├── EmptyStmt
 
 === Symbol Table (tab) ===
-idx id            obj        type      ref  nrm  lev  adr    link 
-------------------------------------------------------------------
-0   integer       type       integer   0    1    0    1      0    
-1   real          type       real      0    1    0    1      0    
-2   boolean       type       boolean   0    1    0    1      1    
-3   char          type       char      0    1    0    1      2    
-4   string        type       string    0    1    0    1      3    
-5   true          constant   boolean   0    1    0    1      4    
-6   false         constant   boolean   0    1    0    0      5    
-7   writeln       procedure  void      0    1    0    0      6    
-8   readln        procedure  void      0    1    0    0      7    
-9   write         procedure  void      0    1    0    0      8    
-10  read          procedure  void      0    1    0    0      9    
-11  Duplicate     program    void      1    1    0    0      10   
-12  x             variable   integer   0    1    0    0      11   
+idx id            obj        type      ref   nrm     lev  adr    link 
+----------------------------------------------------------------------
+0   and           keyword    void      0     value   0    0      -    
+1   array         keyword    void      0     value   0    0      -    
+2   begin         keyword    void      0     value   0    0      -    
+3   case          keyword    void      0     value   0    0      -    
+4   const         keyword    void      0     value   0    0      -    
+5   div           keyword    void      0     value   0    0      -    
+6   downto        keyword    void      0     value   0    0      -    
+7   do            keyword    void      0     value   0    0      -    
+8   else          keyword    void      0     value   0    0      -    
+9   end           keyword    void      0     value   0    0      -    
+10  for           keyword    void      0     value   0    0      -    
+11  function      keyword    void      0     value   0    0      -    
+12  if            keyword    void      0     value   0    0      -    
+13  mod           keyword    void      0     value   0    0      -    
+14  not           keyword    void      0     value   0    0      -    
+15  of            keyword    void      0     value   0    0      -    
+16  or            keyword    void      0     value   0    0      -    
+17  procedure     keyword    void      0     value   0    0      -    
+18  program       keyword    void      0     value   0    0      -    
+19  record        keyword    void      0     value   0    0      -    
+20  repeat        keyword    void      0     value   0    0      -    
+21  integer       keyword    void      0     value   0    0      -    
+22  real          keyword    void      0     value   0    0      -    
+23  boolean       keyword    void      0     value   0    0      -    
+24  char          keyword    void      0     value   0    0      -    
+25  string        keyword    void      0     value   0    0      -    
+26  then          keyword    void      0     value   0    0      -    
+27  to            keyword    void      0     value   0    0      -    
+28  type          keyword    void      0     value   0    0      -    
+29  until         keyword    void      0     value   0    0      -    
+30  var           keyword    void      0     value   0    0      -    
+31  while         keyword    void      0     value   0    0      -    
+32  integer       type       integer   0     value   0    1      -    
+33  real          type       real      0     value   0    1      32   
+34  boolean       type       boolean   0     value   0    1      33   
+35  char          type       char      0     value   0    1      34   
+36  string        type       string    0     value   0    1      35   
+37  true          constant   boolean   0     value   0    1      36   
+38  false         constant   boolean   0     value   0    0      37   
+39  writeln       procedure  void      0     value   0    0      38   
+40  readln        procedure  void      0     value   0    0      39   
+41  write         procedure  void      0     value   0    0      40   
+42  read          procedure  void      0     value   0    0      41   
+43  Literals      program    void      1     value   0    0      42   
+44  c             variable   char      0     value   1    0      -    
+45  s             variable   string    0     value   1    1      44   
+46  r             variable   real      0     value   1    2      45   
 
 === Block Table (btab) ===
 idx  last   lpar   psze   vsze   
 ---------------------------------
-0    12     0      0      1      
-1    0      0      0      0      
+0    43     0      0      0      
+1    46     -      0      3      
 
 === Array Table (atab) ===
-idx  xtyp   etyp   eref   low    high   elsz   size   
------------------------------------------------
+idx  xtyp       etyp       eref   low    high   elsz   size   
+--------------------------------------------------------------
 (empty)
-
-========== Semantic Errors ==========
-Semantic error: duplicate identifier: x

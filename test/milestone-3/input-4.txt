@@ -1,7 +1,13 @@
-program Duplicate;
+program Literals;
 var
-    x : integer;
-    x : real;
+c: char;
+s: string;
+r: real;
 begin
-    x := 10
+c := 'A';
+s := 'Hello World';
+r := 3.14;
+writeln(c);
+writeln(s);
+writeln(r + 100.05);
 end.

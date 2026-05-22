@@ -1,100 +1,108 @@
-programsy
-ident(IfCondition)
-semicolon
-varsy
-ident(x)
-colon
-ident(integer)
-semicolon
-beginsy
-ifsy
-ident(x)
-thensy
-ident(x)
-becomes
-intcon(1)
-endsy
-period
-<Program>
-├── <Program-header>
-│   ├── programsy
-│   ├── ident(IfCondition)
-│   └── semicolon
-├── <declaration-part>
-│   └── <var-declaration>
-│       ├── varsy
-│       ├── <identifier-list>
-│       │   └── ident(x)
-│       ├── colon
-│       ├── <type>
-│       │   └── ident(integer)
-│       └── semicolon
-├── <compound-statement>
-│   ├── beginsy
-│   ├── <statement-list>
-│   │   └── <statement>
-│   │       └── <if-statement>
-│   │           ├── ifsy
-│   │           ├── <expression>
-│   │           │   └── <simple-expression>
-│   │           │       └── <term>
-│   │           │           └── <factor>
-│   │           │               └── <variable>
-│   │           │                   └── ident(x)
-│   │           ├── thensy
-│   │           └── <statement>
-│   │               └── <assignment-statement>
-│   │                   ├── <variable>
-│   │                   │   └── ident(x)
-│   │                   ├── becomes
-│   │                   └── <expression>
-│   │                       └── <simple-expression>
-│   │                           └── <term>
-│   │                               └── <factor>
-│   │                                   └── intcon(1)
-│   └── endsy
-└── period
 
 ========== Decorated AST ==========
-Program: IfCondition [tab=11]
-  Declarations:
-    VarDecl: x [tab=12] type=integer
-  Block: [1 statements]
-    If:
-      Condition:
-        Var: x [tab=12] type=integer lev=0 lval=true
-      Then:
-        Assign:
-          Var: x [tab=12] type=integer lev=0 lval=true
-          Number: 1
+Program: LoopArray [tab=43] type=void lev=0 line=1:1
+├── Declarations: [2 declarations] line=2:1
+│   ├── VarDecl: arr [tab=44] type=array lev=1 line=3:6 <type array atab=0 size=5>
+│   ├── VarDecl: i [tab=45] type=integer lev=1 line=4:4 <type simple=integer resolved=integer>
+├── Block: [1 statements] line=6:1
+│   ├── For: i to [varTab=45] type=void line=6:1
+│   │   ├── Number: 1 type=integer line=6:10
+│   │   ├── Number: 5 type=integer line=6:15
+│   │   ├── Block: [4 statements] line=7:3
+│   │   │   ├── Assign: type=integer line=7:3
+│   │   │   │   ├── Var: arr[i] [tab=44] type=integer lev=1 lval=true line=7:3
+│   │   │   │   ├── BinOp: * type=integer line=7:15
+│   │   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=7:13
+│   │   │   │   │   ├── Number: 2 type=integer line=7:17
+│   │   │   ├── Assign: type=integer line=8:1
+│   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=8:1
+│   │   │   │   ├── Number: 1 type=integer line=8:6
+│   │   │   ├── Repeat: line=9:1
+│   │   │   │   ├── Body:
+│   │   │   │   │   ├── Block: [3 statements] line=10:3
+│   │   │   │   │   │   ├── Call: writeln [tab=39] type=void lev=0 args=1 line=10:3
+│   │   │   │   │   │   │   ├── Var: arr[i] [tab=44] type=integer lev=1 lval=true line=10:11
+│   │   │   │   │   │   ├── Assign: type=integer line=11:3
+│   │   │   │   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=11:3
+│   │   │   │   │   │   │   ├── BinOp: + type=integer line=11:10
+│   │   │   │   │   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=11:8
+│   │   │   │   │   │   │   │   ├── Number: 1 type=integer line=11:12
+│   │   │   │   │   │   ├── EmptyStmt
+│   │   │   │   ├── Until:
+│   │   │   │   │   ├── BinOp: = type=boolean line=12:7
+│   │   │   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=12:7
+│   │   │   │   │   │   ├── Number: 5 type=integer line=12:12
+│   │   │   ├── While: line=13:1
+│   │   │   │   ├── Condition:
+│   │   │   │   │   ├── BinOp: > type=boolean line=13:7
+│   │   │   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=13:7
+│   │   │   │   │   │   ├── Number: 0 type=integer line=13:11
+│   │   │   │   ├── Body:
+│   │   │   │   │   ├── Block: [2 statements] line=14:3
+│   │   │   │   │   │   ├── Assign: type=integer line=14:3
+│   │   │   │   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=14:3
+│   │   │   │   │   │   │   ├── BinOp: - type=integer line=14:10
+│   │   │   │   │   │   │   │   ├── Var: i [tab=45] type=integer lev=1 lval=true line=14:8
+│   │   │   │   │   │   │   │   ├── Number: 1 type=integer line=14:12
+│   │   │   │   │   │   ├── EmptyStmt
 
 === Symbol Table (tab) ===
-idx id            obj        type      ref  nrm  lev  adr    link 
-------------------------------------------------------------------
-0   integer       type       integer   0    1    0    1      0    
-1   real          type       real      0    1    0    1      0    
-2   boolean       type       boolean   0    1    0    1      1    
-3   char          type       char      0    1    0    1      2    
-4   string        type       string    0    1    0    1      3    
-5   true          constant   boolean   0    1    0    1      4    
-6   false         constant   boolean   0    1    0    0      5    
-7   writeln       procedure  void      0    1    0    0      6    
-8   readln        procedure  void      0    1    0    0      7    
-9   write         procedure  void      0    1    0    0      8    
-10  read          procedure  void      0    1    0    0      9    
-11  IfCondition   program    void      1    1    0    0      10   
-12  x             variable   integer   0    1    0    0      11   
+idx id            obj        type      ref   nrm     lev  adr    link 
+----------------------------------------------------------------------
+0   and           keyword    void      0     value   0    0      -    
+1   array         keyword    void      0     value   0    0      -    
+2   begin         keyword    void      0     value   0    0      -    
+3   case          keyword    void      0     value   0    0      -    
+4   const         keyword    void      0     value   0    0      -    
+5   div           keyword    void      0     value   0    0      -    
+6   downto        keyword    void      0     value   0    0      -    
+7   do            keyword    void      0     value   0    0      -    
+8   else          keyword    void      0     value   0    0      -    
+9   end           keyword    void      0     value   0    0      -    
+10  for           keyword    void      0     value   0    0      -    
+11  function      keyword    void      0     value   0    0      -    
+12  if            keyword    void      0     value   0    0      -    
+13  mod           keyword    void      0     value   0    0      -    
+14  not           keyword    void      0     value   0    0      -    
+15  of            keyword    void      0     value   0    0      -    
+16  or            keyword    void      0     value   0    0      -    
+17  procedure     keyword    void      0     value   0    0      -    
+18  program       keyword    void      0     value   0    0      -    
+19  record        keyword    void      0     value   0    0      -    
+20  repeat        keyword    void      0     value   0    0      -    
+21  integer       keyword    void      0     value   0    0      -    
+22  real          keyword    void      0     value   0    0      -    
+23  boolean       keyword    void      0     value   0    0      -    
+24  char          keyword    void      0     value   0    0      -    
+25  string        keyword    void      0     value   0    0      -    
+26  then          keyword    void      0     value   0    0      -    
+27  to            keyword    void      0     value   0    0      -    
+28  type          keyword    void      0     value   0    0      -    
+29  until         keyword    void      0     value   0    0      -    
+30  var           keyword    void      0     value   0    0      -    
+31  while         keyword    void      0     value   0    0      -    
+32  integer       type       integer   0     value   0    1      -    
+33  real          type       real      0     value   0    1      32   
+34  boolean       type       boolean   0     value   0    1      33   
+35  char          type       char      0     value   0    1      34   
+36  string        type       string    0     value   0    1      35   
+37  true          constant   boolean   0     value   0    1      36   
+38  false         constant   boolean   0     value   0    0      37   
+39  writeln       procedure  void      0     value   0    0      38   
+40  readln        procedure  void      0     value   0    0      39   
+41  write         procedure  void      0     value   0    0      40   
+42  read          procedure  void      0     value   0    0      41   
+43  LoopArray     program    void      1     value   0    0      42   
+44  arr           variable   array     0     value   1    0      -    
+45  i             variable   integer   0     value   1    5      44   
 
 === Block Table (btab) ===
 idx  last   lpar   psze   vsze   
 ---------------------------------
-0    12     0      0      1      
-1    0      0      0      0      
+0    43     0      0      0      
+1    45     -      0      6      
 
 === Array Table (atab) ===
-idx  xtyp   etyp   eref   low    high   elsz   size   
------------------------------------------------
-(empty)
-
-========== Semantic Errors ==========
-Semantic error: if condition must be Boolean
+idx  xtyp       etyp       eref   low    high   elsz   size   
+--------------------------------------------------------------
+0    integer    integer    0      1      5      1      5      

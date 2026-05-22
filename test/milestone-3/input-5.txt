@@ -1,7 +1,15 @@
-program IfCondition;
+program LoopArray;
 var
-    x : integer;
+arr: array[1..5] of integer;
+i: integer;
 begin
-    if x then
-        x := 1
+for i := 1 to 5 do
+  arr[i] := i * 2;
+i := 1;
+repeat
+  writeln(arr[i]);
+  i := i + 1;
+until i == 5;
+while i > 0 do
+  i := i - 1;
 end.

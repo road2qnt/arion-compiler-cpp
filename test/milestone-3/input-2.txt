@@ -1,6 +1,13 @@
-program TypeMismatch;
+program Operators;
 var
-    x : integer;
+x, y: integer;
 begin
-    x := 'hello'
+x := 10;
+y := 3;
+if x >= y then
+  writeln(x div y);
+if x <> y then
+  writeln(x mod y);
+if x <= 20 then
+  writeln(x * y - 1);
 end.
