@@ -142,43 +142,106 @@ void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
     int constType = TYPE_INTEGER;
     int constValue = 0;
 
-    if (node->value) {
-        if (auto* num = dynamic_cast<NumberNode*>(node->value)) {
-            constType = TYPE_INTEGER;
-            constValue = num->value;
+    std::function<bool(ASTNode*, int&, int&)> evalConst = [&](ASTNode* valueNode,int& outType,  int& outValue) -> bool {
+        if (!valueNode) return false;
+
+        if (auto* num = dynamic_cast<NumberNode*>(valueNode)) {
+            outType = TYPE_INTEGER;
+            outValue = num->value;
             num->type = TYPE_INTEGER;
-        } else if (auto* real = dynamic_cast<RealNode*>(node->value)) {
-            constType = TYPE_REAL;
-            constValue = (int)real->value;
+            return true;
+        }
+        if (auto* real = dynamic_cast<RealNode*>(valueNode)) {
+            outType = TYPE_REAL;
+            outValue = (int)real->value;
             real->type = TYPE_REAL;
-        } else if (auto* ch = dynamic_cast<CharNode*>(node->value)) {
-            constType = TYPE_CHAR;
-            constValue = (int)ch->value;
+            return true;
+        }
+        if (auto* ch = dynamic_cast<CharNode*>(valueNode)) {
+            outType = TYPE_CHAR;
+            outValue = (int)ch->value;
             ch->type = TYPE_CHAR;
-        } else if (auto* str = dynamic_cast<StringNode*>(node->value)) {
-            constType = TYPE_STRING;
-            constValue = (int)str->value.size();
+            return true;
+        }
+        if (auto* str = dynamic_cast<StringNode*>(valueNode)) {
+            outType = TYPE_STRING;
+            outValue = (int)str->value.size();
             str->type = TYPE_STRING;
-        } else if (auto* b = dynamic_cast<BoolNode*>(node->value)) {
-            constType = TYPE_BOOLEAN;
-            constValue = b->value ? 1 : 0;
+            return true;
+        }
+        if (auto* b = dynamic_cast<BoolNode*>(valueNode)) {
+            outType = TYPE_BOOLEAN;
+            outValue = b->value ? 1 : 0;
             b->type = TYPE_BOOLEAN;
-        } else if (auto* var = dynamic_cast<VarNode*>(node->value)) {
+            return true;
+        }
+        if (auto* var = dynamic_cast<VarNode*>(valueNode)) {
             int idx = symTab.lookup(var->name);
             if (idx == -1) {
-                typeChecker.reportError("undeclared identifier: " + var->name);
-            } else {
-                const TabEntry& e = symTab.getTab(idx);
-                if (e.obj != OBJ_CONSTANT) {
-                    typeChecker.reportError("constant initializer must be a constant: " + var->name);
-                } else {
-                    constType = e.type;
-                    constValue = e.adr;
-                }
-                var->tabIndex = idx;
-                var->type = e.type;
-                var->lev = e.lev;
+                typeChecker.reportError("undeclared identifier: " + var->name, var->line);
+                outType = TYPE_ERROR;
+                outValue = 0;
+                return false;
             }
+
+            const TabEntry& e = symTab.getTab(idx);
+            var->tabIndex = idx;
+            var->type = e.type;
+            var->lev = e.lev;
+
+            if (e.obj != OBJ_CONSTANT) {
+                typeChecker.reportError("constant initializer must be a constant: " + var->name, var->line);
+                outType = TYPE_ERROR;
+                outValue = 0;
+                return false;
+            }
+
+            outType = e.type;
+            outValue = e.adr;
+            return true;
+        }
+        if (auto* unary = dynamic_cast<UnaryOpNode*>(valueNode)) {
+            int innerType = TYPE_ERROR;
+            int innerValue = 0;
+            if (!evalConst(unary->operand, innerType, innerValue)) {
+                unary->type = TYPE_ERROR;
+                outType = TYPE_ERROR;
+                outValue = 0;
+                return false;
+            }
+
+            if (unary->op != "+" && unary->op != "-") {
+                typeChecker.reportError("invalid unary operator in constant initializer: " + unary->op,
+                                        unary->line);
+                unary->type = TYPE_ERROR;
+                outType = TYPE_ERROR;
+                outValue = 0;
+                return false;
+            }
+            if (innerType != TYPE_INTEGER && innerType != TYPE_REAL) {
+                typeChecker.reportError("unary sign in constant initializer requires numeric constant",
+                                        unary->line);
+                unary->type = TYPE_ERROR;
+                outType = TYPE_ERROR;
+                outValue = 0;
+                return false;
+            }
+
+            unary->type = innerType;
+            outType = innerType;
+            outValue = (unary->op == "-") ? -innerValue : innerValue;
+            return true;
+        }
+
+        outType = TYPE_ERROR;
+        outValue = 0;
+        return false;
+    };
+
+    if (node->value) {
+        if (!evalConst(node->value, constType, constValue)) {
+            constType = TYPE_ERROR;
+            constValue = 0;
         }
     }
 
