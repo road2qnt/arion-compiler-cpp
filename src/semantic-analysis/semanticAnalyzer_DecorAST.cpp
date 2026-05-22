@@ -304,6 +304,66 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
     if (node->target) visit(node->target);
     if (node->value)  visit(node->value);
 
+    auto knownStringLength = [&](ASTNode* n) -> int {
+        if (!n) return -1;
+        if (auto* sn = dynamic_cast<StringNode*>(n)) return (int)sn->value.size();
+        if (n->tabIndex >= 0 && n->tabIndex < symTab.getTabSize()) {
+            const TabEntry& e = symTab.getTab(n->tabIndex);
+            if (e.type == TYPE_STRING && e.obj == OBJ_CONSTANT) return e.adr;
+        }
+        return -1;
+    };
+
+    auto targetSubrangeRef = [&]() -> int {
+        if (!node->target || node->target->tabIndex < 0 ||
+            node->target->tabIndex >= symTab.getTabSize()) {
+            return -1;
+        }
+
+        const TabEntry& base = symTab.getTab(node->target->tabIndex);
+        int currentType = base.type;
+        int currentRef = base.ref;
+
+        for (auto* component : node->target->components) {
+            if (!component) continue;
+
+            if (component->kind == VarComponentNode::ARRAY_ACCESS) {
+                for (size_t i = 0; i < component->indices.size(); i++) {
+                    if (currentType != TYPE_ARRAY ||
+                        currentRef < 0 || currentRef >= symTab.getAtabSize()) {
+                        return -1;
+                    }
+                    const AtabEntry& ae = symTab.getAtab(currentRef);
+                    currentType = ae.etyp;
+                    currentRef = ae.eref;
+                }
+            } else if (component->kind == VarComponentNode::FIELD_ACCESS) {
+                if (currentType != TYPE_RECORD ||
+                    currentRef < 0 || currentRef >= symTab.getBtabSize()) {
+                    return -1;
+                }
+
+                int cur = symTab.getBtab(currentRef).last;
+                int found = -1;
+                std::string target = toLowerCopy(component->fieldName);
+                while (cur > 0 && cur < symTab.getTabSize()) {
+                    if (toLowerCopy(symTab.getTab(cur).id) == target) {
+                        found = cur;
+                        break;
+                    }
+                    cur = symTab.getTab(cur).link;
+                }
+                if (found == -1) return -1;
+
+                const TabEntry& field = symTab.getTab(found);
+                currentType = field.type;
+                currentRef = field.ref;
+            }
+        }
+
+        return (currentType == TYPE_SUBRANGE) ? currentRef : -1;
+    };
+
     if (node->target && !node->target->isLValue && node->target->type != TYPE_ERROR) {
         typeChecker.reportError("cannot assign to non-variable: " + node->target->name);
     }
@@ -314,18 +374,9 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
                 typeChecker.reportError("incompatible types");
             }
 
-            // String length check
             if (node->target->type == TYPE_STRING && node->value->type == TYPE_STRING) {
-                auto getStrLen = [&](ASTNode* n) -> int {
-                    if (auto* sn = dynamic_cast<StringNode*>(n)) return (int)sn->value.size();
-                    if (n->tabIndex >= 0 && n->tabIndex < symTab.getTabSize()) {
-                        const TabEntry& e = symTab.getTab(n->tabIndex);
-                        if (e.type == TYPE_STRING && e.obj == OBJ_CONSTANT) return e.adr;
-                    }
-                    return -1;
-                };
-                int targetLen = getStrLen(node->target);
-                int valueLen  = getStrLen(node->value);
+                int targetLen = knownStringLength(node->target);
+                int valueLen  = knownStringLength(node->value);
                 if (targetLen >= 0 && valueLen >= 0 &&
                     !typeChecker.isStringLengthCompatible(targetLen, valueLen)) {
                     typeChecker.reportError("string length mismatch: cannot assign string of length " +
@@ -334,20 +385,17 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
                 }
             }
 
-            // Subrange bounds check
             if (node->target->type == TYPE_SUBRANGE) {
-                int tRef = -1;
-                if (node->target->tabIndex >= 0 && node->target->tabIndex < symTab.getTabSize()) {
-                    tRef = symTab.getTab(node->target->tabIndex).ref;
-                }
+                int tRef = targetSubrangeRef();
                 if (tRef >= 0 && tRef < symTab.getAtabSize()) {
                     const AtabEntry& ae = symTab.getAtab(tRef);
-                    if (auto* num = dynamic_cast<NumberNode*>(node->value)) {
-                        if (num->value < ae.low || num->value > ae.high) {
-                            typeChecker.reportError("value " + std::to_string(num->value) +
-                                                    " out of subrange [" + std::to_string(ae.low) +
-                                                    ".." + std::to_string(ae.high) + "]", node->line);
-                        }
+                    int valueType = TYPE_ERROR;
+                    int value = constNodeOrdinalValue(node->value, valueType);
+                    if (valueType != TYPE_ERROR && valueType != TYPE_REAL &&
+                        (value < ae.low || value > ae.high)) {
+                        typeChecker.reportError("value " + std::to_string(value) +
+                                                " out of subrange [" + std::to_string(ae.low) +
+                                                ".." + std::to_string(ae.high) + "]", node->line);
                     }
                 }
             }
@@ -909,7 +957,7 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveArrayType(ArrayTypeNode*
     AtabEntry ae;
     ae.xtyp = xtyp;
     ae.etyp = etyp;
-    ae.eref = (etyp == TYPE_ARRAY || etyp == TYPE_RECORD) ? eref : 0;
+    ae.eref = (etyp == TYPE_ARRAY || etyp == TYPE_RECORD || etyp == TYPE_SUBRANGE) ? eref : 0;
     ae.low = low;
     ae.high = high;
     ae.elsz = elsz;
