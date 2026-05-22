@@ -414,6 +414,81 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
     visit(node->left);
     visit(node->right);
 
+    auto knownStringLength = [&](ASTNode* n) -> int {
+        if (!n) return -1;
+        if (auto* sn = dynamic_cast<StringNode*>(n)) return (int)sn->value.size();
+        if (n->tabIndex >= 0 && n->tabIndex < symTab.getTabSize()) {
+            const TabEntry& e = symTab.getTab(n->tabIndex);
+            if (e.type == TYPE_STRING && e.obj == OBJ_CONSTANT) return e.adr;
+        }
+        return -1;
+    };
+
+    auto subrangeRefOf = [&](ASTNode* n) -> int {
+        auto* var = dynamic_cast<VarNode*>(n);
+        if (!var || var->tabIndex < 0 || var->tabIndex >= symTab.getTabSize()) {
+            return -1;
+        }
+
+        const TabEntry& base = symTab.getTab(var->tabIndex);
+        int currentType = base.type;
+        int currentRef = base.ref;
+
+        for (auto* component : var->components) {
+            if (!component) continue;
+
+            if (component->kind == VarComponentNode::ARRAY_ACCESS) {
+                for (size_t i = 0; i < component->indices.size(); i++) {
+                    if (currentType != TYPE_ARRAY ||
+                        currentRef < 0 || currentRef >= symTab.getAtabSize()) {
+                        return -1;
+                    }
+                    const AtabEntry& ae = symTab.getAtab(currentRef);
+                    currentType = ae.etyp;
+                    currentRef = ae.eref;
+                }
+            } else if (component->kind == VarComponentNode::FIELD_ACCESS) {
+                if (currentType != TYPE_RECORD ||
+                    currentRef < 0 || currentRef >= symTab.getBtabSize()) {
+                    return -1;
+                }
+
+                int cur = symTab.getBtab(currentRef).last;
+                int found = -1;
+                std::string target = toLowerCopy(component->fieldName);
+                while (cur > 0 && cur < symTab.getTabSize()) {
+                    if (toLowerCopy(symTab.getTab(cur).id) == target) {
+                        found = cur;
+                        break;
+                    }
+                    cur = symTab.getTab(cur).link;
+                }
+                if (found == -1) return -1;
+
+                const TabEntry& field = symTab.getTab(found);
+                currentType = field.type;
+                currentRef = field.ref;
+            }
+        }
+
+        return (currentType == TYPE_SUBRANGE) ? currentRef : -1;
+    };
+
+    auto checkSubrangeLiteral = [&](ASTNode* subrangeSide, ASTNode* valueSide) {
+        int ref = subrangeRefOf(subrangeSide);
+        if (ref < 0 || ref >= symTab.getAtabSize()) return;
+
+        int valueType = TYPE_ERROR;
+        int value = constNodeOrdinalValue(valueSide, valueType);
+        if (valueType == TYPE_ERROR || valueType == TYPE_REAL) return;
+
+        const AtabEntry& ae = symTab.getAtab(ref);
+        if (value < ae.low || value > ae.high) {
+            typeChecker.reportError("value " + std::to_string(value) +
+                                    " out of subrange [" + std::to_string(ae.low) +
+                                    ".." + std::to_string(ae.high) + "]", node->line);
+        }
+    };
 
     bool isRelational = (node->op == "=" || node->op == "<>" || node->op == "<" ||
                          node->op == "<=" || node->op == ">" || node->op == ">=");
@@ -427,19 +502,17 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
             node->type = TYPE_ERROR;
         } else {
             if (node->left->type == TYPE_STRING && node->right->type == TYPE_STRING) {
-                auto getStrLen = [&](ASTNode* n) -> int {
-                    if (auto* sn = dynamic_cast<StringNode*>(n)) return (int)sn->value.size();
-                    if (n->tabIndex >= 0 && n->tabIndex < symTab.getTabSize()) {
-                        const TabEntry& e = symTab.getTab(n->tabIndex);
-                        if (e.type == TYPE_STRING && e.obj == OBJ_CONSTANT) return e.adr;
-                    }
-                    return -1;
-                };
-                int ll = getStrLen(node->left);
-                int rl = getStrLen(node->right);
+                int ll = knownStringLength(node->left);
+                int rl = knownStringLength(node->right);
                 if (ll >= 0 && rl >= 0 && !typeChecker.isStringLengthCompatible(ll, rl)) {
                     typeChecker.reportError("string comparison requires operands of equal length");
                 }
+            }
+            if (node->left->type == TYPE_SUBRANGE) {
+                checkSubrangeLiteral(node->left, node->right);
+            }
+            if (node->right->type == TYPE_SUBRANGE) {
+                checkSubrangeLiteral(node->right, node->left);
             }
             node->type = typeChecker.getResultType(node->op, node->left->type, node->right->type);
         }
@@ -457,6 +530,9 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
         } else {
             node->type = typeChecker.getResultType(node->op, node->left->type, node->right->type);
         }
+    } else {
+        typeChecker.reportError("unknown binary operator: " + node->op);
+        node->type = TYPE_ERROR;
     }
 }
 
