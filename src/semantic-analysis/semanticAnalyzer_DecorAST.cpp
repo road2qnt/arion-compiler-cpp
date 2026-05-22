@@ -218,10 +218,12 @@ void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
 
     int returnType = TYPE_VOID;
     int returnRef = 0;
+    int returnSize = 0;
     if (node->isFunction && node->returnType) {
         ResolvedType rrt = resolveTypeNode(node->returnType);
         returnType = rrt.typeCode;
         returnRef = rrt.ref;
+        returnSize = rrt.size;
     }
 
     int parentBtab = symTab.getCurrentBtabIndex();
@@ -229,8 +231,7 @@ void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
 
     TabEntry subEntry(node->name,
                       node->isFunction ? OBJ_FUNCTION : OBJ_PROCEDURE,
-                      returnType, parentLev, 0);
-    subEntry.ref = returnRef;
+                      returnType, parentLev, returnRef);
     subEntry.nrm = PARAM_VALUE;
     subEntry.link = symTab.getBtab(parentBtab).last;
     int subIdx = symTab.addToTab(subEntry);
@@ -275,17 +276,24 @@ void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
     symTab.getBtab(subBtab).lpar = symTab.getBtab(subBtab).last;
     symTab.getBtab(subBtab).psze = paramAdr;
 
-    if (node->localDecls) visit(node->localDecls);
-
     if (node->isFunction) {
         int rfAdr = symTab.getBtab(subBtab).psze + symTab.getBtab(subBtab).vsze;
-        TabEntry rfe(node->name, OBJ_VARIABLE, returnType, subLev, rfAdr);
-        rfe.ref = returnRef;
-        rfe.nrm = PARAM_VALUE;
-        rfe.link = symTab.getBtab(subBtab).last;
-        int rfIdx = symTab.addToTab(rfe);
-        symTab.getBtab(subBtab).last = rfIdx;
+        int existingReturnSlot = symTab.lookupInCurrentScope(node->name);
+        if (existingReturnSlot != -1) {
+            typeChecker.reportError("duplicate identifier: " + node->name);
+        } else {
+            TabEntry rfe(node->name, OBJ_VARIABLE, returnType, subLev, rfAdr);
+            rfe.ref = returnRef;
+            rfe.nrm = PARAM_VALUE;
+            rfe.link = symTab.getBtab(subBtab).last;
+            int rfIdx = symTab.addToTab(rfe);
+            symTab.getBtab(subBtab).last = rfIdx;
+            int rfSize = (returnSize > 0) ? returnSize : 1;
+            symTab.getBtab(subBtab).vsze += rfSize;
+        }
     }
+
+    if (node->localDecls) visit(node->localDecls);
 
     if (node->body) visit(node->body);
 
