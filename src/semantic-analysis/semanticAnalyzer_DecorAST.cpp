@@ -104,7 +104,7 @@ void SemanticAnalyzer::visitDeclarations(DeclarationsNode* node) {
 void SemanticAnalyzer::visitVarDecl(VarDeclNode* node) {
     int existing = symTab.lookupInCurrentScope(node->name);
     if (existing != -1) {
-        typeChecker.reportError("duplicate identifier: " + node->name);
+        typeChecker.reportError("duplicate identifier: " + node->name, node->line);
         return;
     }
 
@@ -135,7 +135,7 @@ void SemanticAnalyzer::visitVarDecl(VarDeclNode* node) {
 void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
     int existing = symTab.lookupInCurrentScope(node->name);
     if (existing != -1) {
-        typeChecker.reportError("duplicate identifier: " + node->name);
+        typeChecker.reportError("duplicate identifier: " + node->name, node->line);
         return;
     }
 
@@ -260,7 +260,7 @@ void SemanticAnalyzer::visitConstDecl(ConstDeclNode* node) {
 void SemanticAnalyzer::visitTypeDecl(TypeDeclNode* node) {
     int existing = symTab.lookupInCurrentScope(node->name);
     if (existing != -1) {
-        typeChecker.reportError("duplicate identifier: " + node->name);
+        typeChecker.reportError("duplicate identifier: " + node->name, node->line);
         return;
     }
 
@@ -284,7 +284,7 @@ void SemanticAnalyzer::visitTypeDecl(TypeDeclNode* node) {
 void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
     int existing = symTab.lookupInCurrentScope(node->name);
     if (existing != -1) {
-        typeChecker.reportError("duplicate identifier: " + node->name);
+        typeChecker.reportError("duplicate identifier: " + node->name, node->line);
         return;
     }
 
@@ -321,7 +321,7 @@ void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
         if (!param) continue;
         int existingParam = symTab.lookupInCurrentScope(param->name);
         if (existingParam != -1) {
-            typeChecker.reportError("duplicate parameter: " + param->name);
+            typeChecker.reportError("duplicate parameter: " + param->name, param->line);
             continue;
         }
 
@@ -352,7 +352,7 @@ void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
         int rfAdr = symTab.getBtab(subBtab).psze + symTab.getBtab(subBtab).vsze;
         int existingReturnSlot = symTab.lookupInCurrentScope(node->name);
         if (existingReturnSlot != -1) {
-            typeChecker.reportError("duplicate identifier: " + node->name);
+            typeChecker.reportError("duplicate identifier: " + node->name, node->line);
         } else {
             TabEntry rfe(node->name, OBJ_VARIABLE, returnType, subLev, rfAdr);
             rfe.ref = returnRef;
@@ -437,13 +437,13 @@ void SemanticAnalyzer::visitAssign(AssignNode* node) {
     };
 
     if (node->target && !node->target->isLValue && node->target->type != TYPE_ERROR) {
-        typeChecker.reportError("cannot assign to non-variable: " + node->target->name);
+        typeChecker.reportError("cannot assign to non-variable: " + node->target->name, node->line);
     }
 
     if (node->target && node->value) {
         if (node->target->type != TYPE_ERROR && node->value->type != TYPE_ERROR) {
             if (!typeChecker.isAssignmentCompatible(node->target->type, node->value->type)) {
-                typeChecker.reportError("incompatible types");
+                typeChecker.reportError("incompatible types", node->line);
             }
 
             if (node->target->type == TYPE_STRING && node->value->type == TYPE_STRING) {
@@ -580,14 +580,14 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
 
     if (isRelational) {
         if (!typeChecker.isValidRelationalOperator(node->op, node->left->type, node->right->type)) {
-            typeChecker.reportError("operator " + node->op + " not defined for these types");
+            typeChecker.reportError("operator " + node->op + " not defined for these types", node->line);
             node->type = TYPE_ERROR;
         } else {
             if (node->left->type == TYPE_STRING && node->right->type == TYPE_STRING) {
                 int ll = knownStringLength(node->left);
                 int rl = knownStringLength(node->right);
                 if (ll >= 0 && rl >= 0 && !typeChecker.isStringLengthCompatible(ll, rl)) {
-                    typeChecker.reportError("string comparison requires operands of equal length");
+                    typeChecker.reportError("string comparison requires operands of equal length", node->line);
                 }
             }
             if (node->left->type == TYPE_SUBRANGE) {
@@ -600,20 +600,20 @@ void SemanticAnalyzer::visitBinOp(BinOpNode* node) {
         }
     } else if (isArithmetic) {
         if (!typeChecker.isValidArithmeticOperator(node->op, node->left->type, node->right->type)) {
-            typeChecker.reportError("operator " + node->op + " not defined for these types");
+            typeChecker.reportError("operator " + node->op + " not defined for these types", node->line);
             node->type = TYPE_ERROR;
         } else {
             node->type = typeChecker.getResultType(node->op, node->left->type, node->right->type);
         }
     } else if (isLogical) {
         if (!typeChecker.isValidLogicalOperator(node->op, node->left->type, node->right->type)) {
-            typeChecker.reportError("operator " + node->op + " not defined for these types");
+            typeChecker.reportError("operator " + node->op + " not defined for these types", node->line);
             node->type = TYPE_ERROR;
         } else {
             node->type = typeChecker.getResultType(node->op, node->left->type, node->right->type);
         }
     } else {
-        typeChecker.reportError("unknown binary operator: " + node->op);
+        typeChecker.reportError("unknown binary operator: " + node->op, node->line);
         node->type = TYPE_ERROR;
     }
 }
@@ -626,7 +626,7 @@ void SemanticAnalyzer::visitUnaryOp(UnaryOpNode* node) {
     visit(node->operand);
 
     if (!typeChecker.isValidUnaryOperator(node->op, node->operand->type)) {
-        typeChecker.reportError("operator " + node->op + " not defined for this type");
+        typeChecker.reportError("operator " + node->op + " not defined for this type", node->line);
         node->type = TYPE_ERROR;
     } else {
         node->type = typeChecker.getUnaryResultType(node->op, node->operand->type);
@@ -639,7 +639,7 @@ void SemanticAnalyzer::visitIf(IfNode* node) {
     if (node->elseBranch) visit(node->elseBranch);
 
     if (node->condition && !typeChecker.isBoolean(node->condition->type)) {
-        typeChecker.reportError("if condition must be Boolean");
+        typeChecker.reportError("if condition must be Boolean", node->condition->line);
     }
 }
 
@@ -648,7 +648,7 @@ void SemanticAnalyzer::visitWhile(WhileNode* node) {
     if (node->body) visit(node->body);
 
     if (node->condition && !typeChecker.isBoolean(node->condition->type)) {
-        typeChecker.reportError("while condition must be Boolean");
+        typeChecker.reportError("while condition must be Boolean", node->condition->line);
     }
 }
 
@@ -657,7 +657,7 @@ void SemanticAnalyzer::visitRepeat(RepeatNode* node) {
     if (node->condition) visit(node->condition);
 
     if (node->condition && !typeChecker.isBoolean(node->condition->type)) {
-        typeChecker.reportError("repeat condition must be Boolean");
+        typeChecker.reportError("repeat condition must be Boolean", node->condition->line);
     }
 }
 
@@ -669,17 +669,17 @@ void SemanticAnalyzer::visitFor(ForNode* node) {
     int loopVarType = TYPE_ERROR;
     int loopVarRef = -1;
     if (loopVarIdx == -1) {
-        typeChecker.reportError("undeclared loop variable: " + node->varName);
+        typeChecker.reportError("undeclared loop variable: " + node->varName, node->line);
         node->type = TYPE_ERROR;
     } else {
         const TabEntry& e = symTab.getTab(loopVarIdx);
         loopVarType = e.type;
         loopVarRef = e.ref;
         if (e.obj != OBJ_VARIABLE) {
-            typeChecker.reportError("for loop variable must be a variable: " + node->varName);
+            typeChecker.reportError("for loop variable must be a variable: " + node->varName, node->line);
             node->type = TYPE_ERROR;
         } else if (!typeChecker.isOrdinal(e.type)) {
-            typeChecker.reportError("for loop variable must be ordinal: " + node->varName);
+            typeChecker.reportError("for loop variable must be ordinal: " + node->varName, node->line);
             node->type = TYPE_ERROR;
         } else {
             node->type = TYPE_VOID;
@@ -709,21 +709,21 @@ void SemanticAnalyzer::visitFor(ForNode* node) {
     };
 
     if (node->start && !typeChecker.isOrdinal(node->start->type)) {
-        typeChecker.reportError("for loop starting value must be an ordinal type");
+        typeChecker.reportError("for loop starting value must be an ordinal type", node->start->line);
     }
     if (node->end && !typeChecker.isOrdinal(node->end->type)) {
-        typeChecker.reportError("for loop ending value must be an ordinal type");
+        typeChecker.reportError("for loop ending value must be an ordinal type", node->end->line);
     }
     if (loopVarIdx != -1 && node->start && node->start->type != TYPE_ERROR) {
         if (!typeChecker.isAssignmentCompatible(loopVarType, node->start->type)) {
-            typeChecker.reportError("for loop start value incompatible with loop variable");
+            typeChecker.reportError("for loop start value incompatible with loop variable", node->start->line);
         } else {
             checkLoopBound(node->start, "start");
         }
     }
     if (loopVarIdx != -1 && node->end && node->end->type != TYPE_ERROR) {
         if (!typeChecker.isAssignmentCompatible(loopVarType, node->end->type)) {
-            typeChecker.reportError("for loop end value incompatible with loop variable");
+            typeChecker.reportError("for loop end value incompatible with loop variable", node->end->line);
         } else {
             checkLoopBound(node->end, "end");
         }
@@ -849,14 +849,14 @@ void SemanticAnalyzer::visitCase(CaseNode* node) {
 void SemanticAnalyzer::visitProcCall(ProcCallNode* node) {
     int tabIdx = symTab.lookup(node->name);
     if (tabIdx == -1) {
-        typeChecker.reportError("undeclared identifier: " + node->name);
+        typeChecker.reportError("undeclared identifier: " + node->name, node->line);
         node->type = TYPE_ERROR;
         return;
     }
 
     const TabEntry& e = symTab.getTab(tabIdx);
     if (e.obj != OBJ_PROCEDURE && e.obj != OBJ_FUNCTION) {
-        typeChecker.reportError("'" + node->name + "' is not a procedure or function");
+        typeChecker.reportError("'" + node->name + "' is not a procedure or function", node->line);
         node->type = TYPE_ERROR;
         return;
     }
@@ -905,7 +905,7 @@ void SemanticAnalyzer::visitProcCall(ProcCallNode* node) {
     if (params.size() != node->args.size()) {
         typeChecker.reportError("call to '" + node->name + "': expected " +
                                 std::to_string(params.size()) + " arguments, got " +
-                                std::to_string(node->args.size()));
+                                std::to_string(node->args.size()), node->line);
         return;
     }
     for (size_t i = 0; i < params.size(); i++) {
@@ -915,11 +915,11 @@ void SemanticAnalyzer::visitProcCall(ProcCallNode* node) {
         if (argType == TYPE_ERROR) continue;
         if (!typeChecker.isAssignmentCompatible(p.type, argType)) {
             typeChecker.reportError("call to '" + node->name + "': argument " +
-                                    std::to_string(i + 1) + " type mismatch");
+                                    std::to_string(i + 1) + " type mismatch", node->line);
         }
         if (p.nrm == PARAM_REF && !node->args[i]->isLValue) {
             typeChecker.reportError("call to '" + node->name + "': argument " +
-                                    std::to_string(i + 1) + " must be a variable (var parameter)");
+                                    std::to_string(i + 1) + " must be a variable (var parameter)", node->line);
         }
     }
 }
@@ -927,7 +927,7 @@ void SemanticAnalyzer::visitProcCall(ProcCallNode* node) {
 void SemanticAnalyzer::visitVar(VarNode* node) {
     int tabIdx = symTab.lookup(node->name);
     if (tabIdx == -1) {
-        typeChecker.reportError("undeclared identifier: " + node->name);
+        typeChecker.reportError("undeclared identifier: " + node->name, node->line);
         node->type = TYPE_ERROR;
         return;
     }
@@ -957,13 +957,13 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
                         const AtabEntry& a = symTab.getAtab(currentRef);
                         if (idx && idx->type != TYPE_ERROR &&
                             !typeChecker.isCompatible(a.xtyp, idx->type)) {
-                            typeChecker.reportError("array '" + node->name + "' index type mismatch");
+                            typeChecker.reportError("array '" + node->name + "' index type mismatch", node->line);
                         }
                         currentType = a.etyp;
                         currentRef = a.eref;
                         node->isLValue = true;
                     } else if (currentType != TYPE_ERROR) {
-                        typeChecker.reportError("'" + node->name + "' is not an array");
+                        typeChecker.reportError("'" + node->name + "' is not an array", node->line);
                         currentType = TYPE_ERROR;
                         currentRef = 0;
                     }
@@ -982,7 +982,7 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
                     }
                     if (found == -1) {
                         typeChecker.reportError("record '" + node->name + "' has no field '" +
-                                                component->fieldName + "'");
+                                                component->fieldName + "'", node->line);
                         currentType = TYPE_ERROR;
                         currentRef = 0;
                     } else {
@@ -991,7 +991,7 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
                         node->isLValue = true;
                     }
                 } else if (currentType != TYPE_ERROR) {
-                    typeChecker.reportError("'" + node->name + "' is not a record");
+                    typeChecker.reportError("'" + node->name + "' is not a record", node->line);
                     currentType = TYPE_ERROR;
                     currentRef = 0;
                 }
@@ -1009,12 +1009,12 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
             const AtabEntry& a = symTab.getAtab(baseRef);
             if (node->index->type != TYPE_ERROR &&
                 !typeChecker.isCompatible(a.xtyp, node->index->type)) {
-                typeChecker.reportError("array '" + node->name + "' index type mismatch");
+                typeChecker.reportError("array '" + node->name + "' index type mismatch", node->line);
             }
             node->type = a.etyp;
             node->isLValue = true;
         } else {
-            typeChecker.reportError("'" + node->name + "' is not an array");
+            typeChecker.reportError("'" + node->name + "' is not an array", node->line);
             node->type = TYPE_ERROR;
         }
     }
@@ -1029,14 +1029,14 @@ void SemanticAnalyzer::visitVar(VarNode* node) {
                 last = symTab.getTab(last).link;
             }
             if (found == -1) {
-                typeChecker.reportError("record '" + node->name + "' has no field '" + node->fieldName + "'");
+                typeChecker.reportError("record '" + node->name + "' has no field '" + node->fieldName + "'", node->line);
                 node->type = TYPE_ERROR;
             } else {
                 node->type = symTab.getTab(found).type;
                 node->isLValue = true;
             }
         } else {
-            typeChecker.reportError("'" + node->name + "' is not a record");
+            typeChecker.reportError("'" + node->name + "' is not a record", node->line);
             node->type = TYPE_ERROR;
         }
     }
@@ -1110,12 +1110,12 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveTypeNode(TypeNode* tn) {
         else {
             int idx = symTab.lookup(simple->name);
             if (idx == -1) {
-                typeChecker.reportError("undeclared type identifier: " + simple->name);
+                typeChecker.reportError("undeclared type identifier: " + simple->name, simple->line);
                 r = ResolvedType(TYPE_ERROR, 0, 0);
             } else {
                 const TabEntry& e = symTab.getTab(idx);
                 if (e.obj != OBJ_TYPE) {
-                    typeChecker.reportError("'" + simple->name + "' is not a type");
+                    typeChecker.reportError("'" + simple->name + "' is not a type", simple->line);
                     r = ResolvedType(TYPE_ERROR, 0, 0);
                 } else {
                     r = ResolvedType(e.type, e.ref, e.adr > 0 ? e.adr : sizeOfPrimitive(e.type));
@@ -1147,14 +1147,14 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveRangeType(RangeTypeNode*
     int loVal = constNodeOrdinalValue(rng->low, loType);
     int hiVal = constNodeOrdinalValue(rng->high, hiType);
     if (loType == TYPE_REAL || hiType == TYPE_REAL) {
-        typeChecker.reportError("subrange bounds must not be Real");
+        typeChecker.reportError("subrange bounds must not be Real", rng->line);
         r.typeCode = TYPE_ERROR;
     }
     if (loType != TYPE_ERROR && hiType != TYPE_ERROR && loType != hiType) {
-        typeChecker.reportError("subrange bounds must have the same type");
+        typeChecker.reportError("subrange bounds must have the same type", rng->line);
     }
     if (loVal > hiVal) {
-        typeChecker.reportError("subrange lower bound must be <= upper bound");
+        typeChecker.reportError("subrange lower bound must be <= upper bound", rng->line);
     }
     if (rng->low)  rng->low->type  = (loType == TYPE_ERROR) ? TYPE_INTEGER : loType;
     if (rng->high) rng->high->type = (hiType == TYPE_ERROR) ? TYPE_INTEGER : hiType;
@@ -1186,11 +1186,11 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveArrayType(ArrayTypeNode*
             high = constNodeOrdinalValue(rng->high, hiT);
             xtyp = (loT != TYPE_ERROR) ? loT : TYPE_INTEGER;
             if (xtyp == TYPE_REAL) {
-                typeChecker.reportError("array index type cannot be Real");
+                typeChecker.reportError("array index type cannot be Real", arr->line);
                 xtyp = TYPE_INTEGER;
             }
             if (low > high) {
-                typeChecker.reportError("array range lower must be <= upper");
+                typeChecker.reportError("array range lower must be <= upper", arr->line);
             }
             rng->type = TYPE_SUBRANGE;
             rng->size = 1;
@@ -1199,7 +1199,7 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveArrayType(ArrayTypeNode*
             ResolvedType irt = resolveTypeNode(simple);
             xtyp = irt.typeCode;
             if (xtyp == TYPE_REAL) {
-                typeChecker.reportError("array index type cannot be Real");
+                typeChecker.reportError("array index type cannot be Real", arr->line);
                 xtyp = TYPE_INTEGER;
             }
             low = 0;
@@ -1258,7 +1258,7 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveRecordType(RecordTypeNod
         if (!field || !field->fieldType) continue;
         std::string normalizedName = toLowerCopy(field->name);
         if (std::find(fieldNames.begin(), fieldNames.end(), normalizedName) != fieldNames.end()) {
-            typeChecker.reportError("duplicate record field: " + field->name);
+            typeChecker.reportError("duplicate record field: " + field->name, field->line);
             continue;
         }
         fieldNames.push_back(normalizedName);
@@ -1300,7 +1300,7 @@ SemanticAnalyzer::ResolvedType SemanticAnalyzer::resolveEnumType(EnumeratedTypeN
         const std::string& nm = en->values[i];
         int existing = symTab.lookupInCurrentScope(nm);
         if (existing != -1) {
-            typeChecker.reportError("duplicate enumerated identifier: " + nm);
+            typeChecker.reportError("duplicate enumerated identifier: " + nm, en->line);
             continue;
         }
         TabEntry e(nm, OBJ_CONSTANT, TYPE_ENUM, curLev, (int)i);
