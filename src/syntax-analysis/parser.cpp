@@ -72,7 +72,12 @@ ParseNode Parser::parse(){
     result.children.push_back(parseProgramHeader());
     result.children.push_back(parseDeclarationPart());
     result.children.push_back(parseCompoundStatement());
+    bool consumedFinalPeriod = match(TokenType::PERIOD);
     result.children.push_back(expect(TokenType::PERIOD));
+    if (consumedFinalPeriod && pos < static_cast<int>(tokens.size())) {
+        result.children.push_back(error("unexpected token " + tokenToString(peek().type) +
+                                        " after period"));
+    }
 
     return result;
 }
