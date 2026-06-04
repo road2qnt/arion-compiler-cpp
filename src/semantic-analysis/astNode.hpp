@@ -56,8 +56,9 @@ struct DeclNode : ASTNode {
 struct VarDeclNode : DeclNode {
     std::string name;
     struct TypeNode* varType;  // Pointer to type node
+    int nrm;                   // Parameter mode (PARAM_VALUE or PARAM_REF)
 
-    VarDeclNode(const std::string& name) : name(name), varType(nullptr) {}
+    VarDeclNode(const std::string& name) : name(name), varType(nullptr), nrm(PARAM_VALUE) {}
     ~VarDeclNode() override;
 };
 
