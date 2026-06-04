@@ -40,10 +40,16 @@ inline std::string runtimeTypeToString(RuntimeType type) {
 }
 
 inline bool runtimeValueIsFalse(const RuntimeValue& value) {
-    if (value.type != RuntimeType::BOOLEAN) {
-        throw std::runtime_error("JPC expects boolean value");
+    if (value.type == RuntimeType::BOOLEAN) {
+        return !std::get<bool>(value.value);
     }
-    return !std::get<bool>(value.value);
+    if (value.type == RuntimeType::INTEGER) {
+        return std::get<int>(value.value) == 0;
+    }
+    if (value.type == RuntimeType::REAL) {
+        return std::get<double>(value.value) == 0.0;
+    }
+    throw std::runtime_error("JPC expects boolean or numeric value");
 }
 
 inline std::string runtimeValueToString(const RuntimeValue& value) {
