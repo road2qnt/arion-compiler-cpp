@@ -89,6 +89,8 @@ ParseNode Parser::parseStatement(){
         node.children.push_back(parseRepeatStatement());
     } else if (match(TokenType::FORSY)){
         node.children.push_back(parseForStatement());
+    } else if (match(TokenType::BEGINSY)){
+        node.children.push_back(parseCompoundStatement());
     } else if (!isStatementFollow(peek().type)){
         node.children.push_back(error("unexpected token " + tokenToString(peek().type) + " in statement"));
     }
