@@ -16,7 +16,10 @@ enum class InstructionCode {
     JMP,  // unconditional jump
     JPC,  // jump when popped condition is false
     OPR,  // built-in operation by operation code
-    RET   // return/finish current frame
+    RET,   // return/finish current frame
+    LDA,  // load absolute address of variable
+    LDI,  // load indirect (pop address, push value at that address)
+    STI   // store indirect (pop address, pop value, store at address)
 };
 
 // Operation Number (OPR)
@@ -60,6 +63,9 @@ inline std::string instructionCodeToString(InstructionCode code) {
         case InstructionCode::JPC: return "JPC";
         case InstructionCode::OPR: return "OPR";
         case InstructionCode::RET: return "RET";
+        case InstructionCode::LDA: return "LDA";
+        case InstructionCode::LDI: return "LDI";
+        case InstructionCode::STI: return "STI";
     }
     return "UNKNOWN";
 }
