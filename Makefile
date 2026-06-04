@@ -11,7 +11,9 @@ SRC_DIRS := \
 	$(SRC_DIR) \
 	$(SRC_DIR)/lexical-analysis \
 	$(SRC_DIR)/syntax-analysis \
-	$(SRC_DIR)/semantic-analysis
+	$(SRC_DIR)/semantic-analysis \
+	$(SRC_DIR)/intermediate-code \
+	$(SRC_DIR)/interpreter
 
 SRCS := $(foreach dir,$(SRC_DIRS),$(wildcard $(dir)/*.cpp))
 OBJS := $(patsubst $(SRC_DIR)/%.cpp,$(BIN_DIR)/%.o,$(SRCS))
