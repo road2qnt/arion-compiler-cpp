@@ -1,0 +1,22 @@
+program testNestedVarParam;
+var result: integer;
+
+procedure outer(var x: integer);
+var temp: integer;
+
+    procedure inner;
+    begin
+        x := x * 2
+    end;
+
+begin
+    x := x + 5;
+    inner
+end;
+
+begin
+    result := 10;
+    writeln(result);
+    outer(result);
+    writeln(result)
+end.

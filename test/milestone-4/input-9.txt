@@ -1,0 +1,22 @@
+program NestedSubTest;
+var
+  x: integer;
+
+procedure outer;
+var
+  y: integer;
+
+  procedure inner;
+  begin
+    y := y + 10;
+  end;
+
+begin
+  y := 5;
+  inner();
+  writeln('y from inner = ', y);
+end;
+
+begin
+  outer();
+end.

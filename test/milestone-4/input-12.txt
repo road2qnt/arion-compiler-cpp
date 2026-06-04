@@ -1,0 +1,27 @@
+program testFuncVarParam;
+var x, y, z: integer;
+
+function inc(var n: integer): integer;
+begin
+    n := n + 1;
+    inc := n
+end;
+
+function add(var a, b: integer): integer;
+begin
+    a := a + 10;
+    b := b + 20;
+    add := a + b
+end;
+
+begin
+    x := 5;
+    y := 15;
+    z := inc(x);
+    writeln(x);
+    writeln(z);
+    z := add(x, y);
+    writeln(x);
+    writeln(y);
+    writeln(z)
+end.

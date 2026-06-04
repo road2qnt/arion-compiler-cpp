@@ -1,0 +1,8 @@
+program ProcTest;
+procedure sayHello;
+begin
+  writeln('Hello, world!');
+end;
+begin
+  sayHello();
+end.

@@ -1,0 +1,48 @@
+program testRecordVarParam;
+type
+    Point = record
+        x, y: integer
+    end;
+    Pair = record
+        a, b: integer
+    end;
+
+var p: Point;
+    pr: Pair;
+
+procedure setZero(var n: integer);
+begin
+    n := 0
+end;
+
+procedure increment(var n: integer);
+begin
+    n := n + 1
+end;
+
+procedure doubleIt(var n: integer);
+begin
+    n := n * 2
+end;
+
+begin
+    p.x := 10;
+    p.y := 20;
+    writeln(p.x);
+    writeln(p.y);
+
+    setZero(p.x);
+    increment(p.y);
+    writeln(p.x);
+    writeln(p.y);
+
+    pr.a := 5;
+    pr.b := 7;
+    writeln(pr.a);
+    writeln(pr.b);
+
+    doubleIt(pr.a);
+    increment(pr.b);
+    writeln(pr.a);
+    writeln(pr.b)
+end.

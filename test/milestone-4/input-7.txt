@@ -1,0 +1,12 @@
+program ProcParamTest;
+var
+  a, b: integer;
+
+procedure printSum(x: integer; y: integer);
+begin
+  writeln(x + y);
+end;
+
+begin
+  printSum(3, 7);
+end.

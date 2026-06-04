@@ -1,0 +1,7 @@
+program testEmptyCompoundFor;
+var i, x: integer;
+begin
+    for i := 1 to 5 do begin end;
+    x := 10;
+    writeln(x)
+end.

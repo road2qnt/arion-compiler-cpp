@@ -1,0 +1,57 @@
+program testArrayNestedRecordVarParam;
+type
+    Inner = record
+        val: integer
+    end;
+    Outer = record
+        data: Inner;
+        other: integer
+    end;
+    Container = array[1..3] of Outer;
+var
+    cont: Container;
+
+procedure setZero(var n: integer);
+begin
+    n := 0
+end;
+
+procedure increment(var n: integer);
+begin
+    n := n + 1
+end;
+
+procedure doubleIt(var n: integer);
+begin
+    n := n * 2
+end;
+
+begin
+    cont[1].data.val := 10;
+    cont[1].other := 100;
+    cont[2].data.val := 20;
+    cont[2].other := 200;
+    cont[3].data.val := 30;
+    cont[3].other := 300;
+
+    writeln(cont[1].data.val);
+    writeln(cont[1].other);
+    writeln(cont[2].data.val);
+    writeln(cont[2].other);
+    writeln(cont[3].data.val);
+    writeln(cont[3].other);
+
+    increment(cont[1].data.val);
+    writeln(cont[1].data.val);
+
+    doubleIt(cont[2].data.val);
+    writeln(cont[2].data.val);
+
+    setZero(cont[3].data.val);
+    writeln(cont[3].data.val);
+
+    cont[1].data.val := 7;
+    cont[2].other := 77;
+    writeln(cont[1].data.val);
+    writeln(cont[2].other)
+end.

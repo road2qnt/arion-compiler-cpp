@@ -1,0 +1,21 @@
+program testArrayVarParam;
+var arr: array[1..5] of integer;
+    i: integer;
+
+procedure setAll(var a: integer);
+begin
+    a := 99
+end;
+
+begin
+    arr[1] := 10;
+    arr[2] := 20;
+    arr[3] := 30;
+    arr[4] := 40;
+    arr[5] := 50;
+    writeln(arr[1]);
+    writeln(arr[3]);
+    setAll(arr[3]);
+    writeln(arr[3]);
+    writeln(arr[1])
+end.

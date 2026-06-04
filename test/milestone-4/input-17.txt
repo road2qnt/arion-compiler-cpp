@@ -1,0 +1,53 @@
+program testArrayOfRecordVarParam;
+type
+    Student = record
+        id, score: integer
+    end;
+    ScoreBoard = array[1..5] of Student;
+
+var sb: ScoreBoard;
+    i: integer;
+
+procedure setZero(var n: integer);
+begin
+    n := 0
+end;
+
+procedure increment(var n: integer);
+begin
+    n := n + 1
+end;
+
+procedure doubleIt(var n: integer);
+begin
+    n := n * 2
+end;
+
+begin
+    for i := 1 to 5 do
+    begin
+        sb[i].id := i * 100;
+        sb[i].score := i * 10
+    end;
+
+    writeln(sb[3].id);
+    writeln(sb[3].score);
+
+    increment(sb[3].score);
+    writeln(sb[3].score);
+
+    doubleIt(sb[3].score);
+    writeln(sb[3].score);
+
+    setZero(sb[3].score);
+    writeln(sb[3].score);
+
+    if sb[3].score = 0 then
+    begin
+        sb[1].score := 10;
+        sb[5].id := 500
+    end;
+
+    writeln(sb[1].score);
+    writeln(sb[5].id)
+end.

@@ -1,0 +1,16 @@
+program Loops;
+var
+i, sum: integer;
+begin
+i := 1;
+sum := 0;
+while i <= 5 do
+  i := i + 1;
+writeln('sum = ', sum);
+
+i := 1;
+repeat
+  writeln(i);
+  i := i + 1;
+until i > 5;
+end.

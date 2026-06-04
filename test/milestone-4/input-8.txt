@@ -1,0 +1,12 @@
+program FuncTest;
+var
+  x: integer;
+
+function doubleValue(n: integer): integer;
+begin
+  doubleValue := n * 2;
+end;
+
+begin
+  writeln(doubleValue(5));
+end.

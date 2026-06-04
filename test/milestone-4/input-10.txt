@@ -1,0 +1,20 @@
+program FuncComposeTest;
+var
+  x: integer;
+
+function square(n: integer): integer;
+begin
+  square := n * n;
+end;
+
+function doubleValue(n: integer): integer;
+begin
+  doubleValue := n * 2;
+end;
+
+begin
+  x := 3;
+  writeln('square(3) = ', square(x));
+  writeln('double(9) = ', doubleValue(9));
+  writeln('compose: ', doubleValue(square(x)));
+end.

@@ -1,0 +1,15 @@
+program IfElse;
+var
+x: integer;
+begin
+x := 15;
+if x > 10 then
+  writeln('x besar')
+else
+  writeln('x kecil');
+x := 5;
+if x > 10 then
+  writeln('x besar')
+else
+  writeln('x kecil');
+end.

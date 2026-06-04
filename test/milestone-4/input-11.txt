@@ -1,0 +1,30 @@
+program VarParamTest;
+
+var
+    x, y : integer;
+
+procedure increment(var a : integer);
+begin
+    a := a + 1
+end;
+
+procedure swap(var a, b : integer);
+var
+    temp : integer;
+begin
+    temp := a;
+    a := b;
+    b := temp
+end;
+
+begin
+    x := 5;
+    writeln(x);
+    increment(x);
+    writeln(x);
+    x := 1;
+    y := 10;
+    swap(x, y);
+    writeln(x);
+    writeln(y)
+end.

@@ -1,0 +1,13 @@
+program NestedControl;
+var
+i: integer;
+begin
+for i := 1 to 5 do
+  if i <= 2 then
+    writeln('kecil: ', i)
+  else
+    if i >= 4 then
+      writeln('besar: ', i)
+    else
+      writeln('tengah: ', i);
+end.

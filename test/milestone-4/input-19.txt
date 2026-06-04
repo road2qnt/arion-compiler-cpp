@@ -1,0 +1,51 @@
+program testNestedRecordFieldVarParam;
+type
+    Inner = record
+        val: integer
+    end;
+    Outer = record
+        data: Inner;
+        other: integer
+    end;
+var
+    obj: Outer;
+    obj2: Outer;
+
+procedure setZero(var n: integer);
+begin
+    n := 0
+end;
+
+procedure increment(var n: integer);
+begin
+    n := n + 1
+end;
+
+procedure doubleIt(var n: integer);
+begin
+    n := n * 2
+end;
+
+begin
+    obj.data.val := 5;
+    obj.other := 10;
+    writeln(obj.data.val);
+    writeln(obj.other);
+
+    increment(obj.data.val);
+    writeln(obj.data.val);
+
+    doubleIt(obj.data.val);
+    writeln(obj.data.val);
+
+    setZero(obj.data.val);
+    writeln(obj.data.val);
+
+    obj2.data.val := 99;
+    obj2.other := 20;
+    writeln(obj2.data.val);
+    writeln(obj2.other);
+
+    increment(obj2.data.val);
+    writeln(obj2.data.val)
+end.
