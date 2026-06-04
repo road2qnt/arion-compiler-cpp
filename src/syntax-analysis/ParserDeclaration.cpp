@@ -135,9 +135,12 @@ ParseNode Parser::parseFormalParameterList(){
     return node;
 }
 ParseNode Parser::parseParameterGroup(){
-    // identifier-list + colon + (ident | array-type)
+    // (varsy)? + identifier-list + colon + (ident | array-type)
     ParseNode node = ParseNode("<parameter-group>");
 
+    if (match(TokenType::VARSY)){
+        node.children.push_back(expect(TokenType::VARSY));
+    }
     node.children.push_back(parseIdentifierList());
     node.children.push_back(expect(TokenType::COLON));
     if (match(TokenType::IDENT)){
