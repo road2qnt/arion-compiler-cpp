@@ -170,8 +170,8 @@ void Lexer::DFA(const string& filename) {
                         addToken(true, state, lexeme);
                         lexeme = ""; state = STATE_START;
                     } else {
-                        state = STATE_ERR;
-                        addToken(true, state, lexeme);
+                        // Single '=' is valid EQL in Pascal
+                        addToken(true, STATE_EQ2, lexeme);
                         lexeme = ""; state = STATE_START;
                     }
                     break;
