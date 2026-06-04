@@ -9,6 +9,7 @@
 #include "utils/command.hpp"
 #include "debugger/tokenDumper.hpp"
 #include "debugger/astVisualizer.hpp"
+#include "code.hpp"
 
 using namespace std;
 
@@ -17,8 +18,8 @@ int main(int argc, char* argv[]) {
         return runInteractiveMode();
     }
 
-    if (argc > 5) {
-        cout << "Usage: " << argv[0] << " [source_file] [lexical_output_file] [syntax_output_file] [semantic_output_file]" << endl;
+    if (argc > 6) {
+        cout << "Usage: " << argv[0] << " [source_file] [lexical_output] [syntax_output] [semantic_output] [codegen_output]" << endl;
         return 1;
     }
 
