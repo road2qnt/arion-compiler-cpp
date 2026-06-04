@@ -5,6 +5,7 @@
 #include <fstream>
 #include "../lexical-analysis/lexer.hpp"
 #include "../semantic-analysis/semanticAnalyzer.hpp"
+#include "../intermediate-code/instruction.hpp"
 #include "printTree.hpp"
 
 void printLexicalAnalysis(ostream& out, const vector<Token>& tokens) {
@@ -51,6 +52,30 @@ bool printSemanticAnalysisToFile(const string& outputPath, const SemanticAnalyze
     }
 
     printSemanticAnalysis(outFile, analyzer);
+    return true;
+}
+
+void printIntermediateCode(ostream& os, const vector<Instruction>& instructions) {
+    for (size_t i = 0; i < instructions.size(); i++) {
+        os << (i + 1) << " "
+           << instructionCodeToString(instructions[i].code) << " "
+           << instructions[i].level << " "
+           << instructionArgumentToString(instructions[i].argument);
+        if (!instructions[i].comment.empty()) {
+            os << " ; " << instructions[i].comment;
+        }
+        os << endl;
+    }
+}
+
+bool printCodegenOutputToFile(const string& outputPath, const vector<Instruction>& instructions) {
+    ofstream outFile(outputPath);
+    if (!outFile.is_open()) {
+        cout << "[!] File output intermediate code tidak bisa dibuka." << endl;
+        return false;
+    }
+
+    printIntermediateCode(outFile, instructions);
     return true;
 }
 
