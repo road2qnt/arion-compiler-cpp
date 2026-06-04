@@ -337,7 +337,9 @@ SubprogramDeclNode* SemanticAnalyzer::convertSubprogramDecl(const ParseNode& nod
         std::vector<std::string> pnames;
         TypeNode* pType = nullptr;
         bool seenColon = false;
+        bool isVar = false;
         for (const auto& pc : paramChild.children) {
+            if (pc.isTerminal && pc.label == "varsy") { isVar = true; continue; }
             if (pc.isTerminal && pc.label == "colon") { seenColon = true; continue; }
             if (!seenColon) {
                 if (pc.label == "<identifier-list>") {
@@ -360,6 +362,7 @@ SubprogramDeclNode* SemanticAnalyzer::convertSubprogramDecl(const ParseNode& nod
         for (const auto& pn : pnames) {
             VarDeclNode* param = new VarDeclNode(pn);
             param->varType = cloneTypeNode(pType);
+            param->nrm = isVar ? PARAM_REF : PARAM_VALUE;
             setSource(param, findLineForNode(paramChild));
             sub->params.push_back(param);
         }
@@ -594,6 +597,9 @@ ASTNode* SemanticAnalyzer::convertStatement(const ParseNode& node) {
     }
     if (inner.label == "<procedure-function-call>") {
         return convertProcedureFunctionCall(inner);
+    }
+    if (inner.label == "<compound-statement>") {
+        return convertCompoundStatement(inner);
     }
 
     return nullptr;

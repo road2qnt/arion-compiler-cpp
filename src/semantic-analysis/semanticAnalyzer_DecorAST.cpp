@@ -334,7 +334,7 @@ void SemanticAnalyzer::visitSubprogramDecl(SubprogramDeclNode* node) {
 
         TabEntry pe(param->name, OBJ_VARIABLE, pr.typeCode, subLev, paramAdr);
         pe.ref = pr.ref;
-        pe.nrm = PARAM_VALUE;
+        pe.nrm = param->nrm;
         pe.link = symTab.getBtab(subBtab).last;
         int pidx = symTab.addToTab(pe);
         symTab.getBtab(subBtab).last = pidx;
