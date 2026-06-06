@@ -5,6 +5,7 @@ CodeGenerationResult CodeGenerator::generate(ProgramNode* root, const SymbolTabl
     this->symbols = &syms;
     result = CodeGenerationResult();
     subprogramEntries.clear();
+    currentCaseTempAddress = -1;
 
     if (root) {
         // Phase 1: Collect all subprogram entry points (traverse AST to find all SubprogramDeclNode)
@@ -17,9 +18,7 @@ CodeGenerationResult CodeGenerator::generate(ProgramNode* root, const SymbolTabl
     return result;
 }
 
-// ============================================================
 // Utility
-// ============================================================
 
 void CodeGenerator::collectSubprogramEntries(ProgramNode* node) {
     if (node && node->declarations) {
@@ -142,9 +141,31 @@ bool CodeGenerator::isBuiltinReadCall(const ProcCallNode* node) const {
     return (e.lev == 0 && (lo == "read" || lo == "readln"));
 }
 
-// ============================================================
+bool CodeGenerator::containsCase(ASTNode* node) const {
+    if (!node) return false;
+
+    if (dynamic_cast<CaseNode*>(node)) return true;
+
+    if (auto* block = dynamic_cast<BlockNode*>(node)) {
+        for (auto* stmt : block->statements) {
+            if (containsCase(stmt)) return true;
+        }
+    } else if (auto* ifNode = dynamic_cast<IfNode*>(node)) {
+        return containsCase(ifNode->thenBranch) || containsCase(ifNode->elseBranch);
+    } else if (auto* whileNode = dynamic_cast<WhileNode*>(node)) {
+        return containsCase(whileNode->body);
+    } else if (auto* repeatNode = dynamic_cast<RepeatNode*>(node)) {
+        return containsCase(repeatNode->body);
+    } else if (auto* forNode = dynamic_cast<ForNode*>(node)) {
+        return containsCase(forNode->body);
+    } else if (auto* sub = dynamic_cast<SubprogramDeclNode*>(node)) {
+        return containsCase(sub->body);
+    }
+
+    return false;
+}
+
 // Program
-// ============================================================
 
 void CodeGenerator::generateProgram(ProgramNode* node) {
     if (!node) return;
@@ -161,7 +182,11 @@ void CodeGenerator::generateProgram(ProgramNode* node) {
     editInstruction(skipJmp, currentLine());
 
     // Generate main program body
-    int frameSize = programFrameSize(node);
+    int baseFrameSize = programFrameSize(node);
+    bool needsCaseTemp = containsCase(node->body);
+    int frameSize = baseFrameSize + (needsCaseTemp ? 1 : 0);
+    int savedCaseTempAddress = currentCaseTempAddress;
+    currentCaseTempAddress = needsCaseTemp ? baseFrameSize : -1;
     add(InstructionCode::INT, 0, frameSize, "main program frame (" + std::to_string(frameSize) + " slots)");
 
     if (node->body) {
@@ -172,6 +197,7 @@ void CodeGenerator::generateProgram(ProgramNode* node) {
 
     // Restore level
     currentLevel = 1;
+    currentCaseTempAddress = savedCaseTempAddress;
 }
 
 void CodeGenerator::generateSubprogramBodies(ProgramNode* node) {
@@ -197,7 +223,11 @@ void CodeGenerator::generateSingleSubprogram(SubprogramDeclNode* sub) {
     }
 
     // Allocate frame
-    int totalFrameSize = subprogramFrameSize(sub);
+    int baseFrameSize = subprogramFrameSize(sub);
+    bool needsCaseTemp = containsCase(sub->body);
+    int totalFrameSize = baseFrameSize + (needsCaseTemp ? 1 : 0);
+    int savedCaseTempAddress = currentCaseTempAddress;
+    currentCaseTempAddress = needsCaseTemp ? baseFrameSize : -1;
     add(InstructionCode::INT, 0, totalFrameSize, sub->name + " frame (" + std::to_string(totalFrameSize) + " slots)");
 
     // Copy arguments from operand stack to parameter memory slots
@@ -244,11 +274,10 @@ void CodeGenerator::generateSingleSubprogram(SubprogramDeclNode* sub) {
 
     // Restore level
     currentLevel = savedLevel;
+    currentCaseTempAddress = savedCaseTempAddress;
 }
 
-// ============================================================
 // Statements
-// ============================================================
 
 void CodeGenerator::generateStatement(ASTNode* node) {
     if (!node) return;
@@ -377,43 +406,46 @@ void CodeGenerator::generateFor(ForNode* node) {
 
 void CodeGenerator::generateCase(CaseNode* node) {
     if (!node || !node->expression) return;
+    if (currentCaseTempAddress < 0) {
+        reportError("case temporary slot was not allocated", node);
+        return;
+    }
 
     generateExpression(node->expression);
-
-    int vsze = 0;
-    for (int i = (int)symbols->getBtabSize() - 1; i >= 0; --i) {
-        if (symbols->getBtab(i).vsze > 0) {
-            vsze = symbols->getBtab(i).vsze;
-            break;
-        }
-    }
-    int tempAdr = FRAME_HEADER_SIZE + vsze;
+    int tempAdr = currentCaseTempAddress;
     add(InstructionCode::STO, 0, tempAdr, "case: save expr");
 
-    std::vector<int> patchList;
+    std::vector<int> endJumps;
 
     for (auto* branch : node->branches) {
         if (!branch) continue;
 
+        std::vector<int> bodyJumps;
         for (size_t ci = 0; ci < branch->constants.size(); ci++) {
             add(InstructionCode::LOD, 0, tempAdr, "case: load expr");
             generateExpression(branch->constants[ci]);
             add(InstructionCode::OPR, 0, operationNumber(OperationCode::EQL), "case: cmp");
 
-            if (ci < branch->constants.size() - 1) {
-                int jpc = add(InstructionCode::JPC, 0, 0, "case: next constant");
-                patchList.push_back(jpc);
-            }
+            int jpc = add(InstructionCode::JPC, 0, 0, "case: next constant");
+            bodyJumps.push_back(add(InstructionCode::JMP, 0, 0, "case: matched branch"));
+            editInstruction(jpc, currentLine());
+        }
+
+        int nextBranchJump = add(InstructionCode::JMP, 0, 0, "case: next branch");
+        int bodyStart = currentLine();
+        for (int jump : bodyJumps) {
+            editInstruction(jump, bodyStart);
         }
 
         if (branch->statement) generateStatement(branch->statement);
 
-        patchList.push_back(add(InstructionCode::JMP, 0, 0, "case: end of branch"));
+        endJumps.push_back(add(InstructionCode::JMP, 0, 0, "case: end of branch"));
+        editInstruction(nextBranchJump, currentLine());
     }
 
     int endIdx = currentLine();
-    for (int p : patchList) {
-        editInstruction(p, endIdx);
+    for (int jump : endJumps) {
+        editInstruction(jump, endIdx);
     }
 }
 
@@ -520,9 +552,7 @@ void CodeGenerator::generateCall(ProcCallNode* node) {
     add(InstructionCode::CAL, levelDiff, entryPoint, "call " + node->name);
 }
 
-// ============================================================
 // Expressions
-// ============================================================
 
 void CodeGenerator::generateExpression(ASTNode* node) {
     if (!node) return;
@@ -532,7 +562,7 @@ void CodeGenerator::generateExpression(ASTNode* node) {
     } else if (auto* real = dynamic_cast<RealNode*>(node)) {
         add(InstructionCode::LIT, 0, real->value, "real " + std::to_string(real->value));
     } else if (auto* ch = dynamic_cast<CharNode*>(node)) {
-        add(InstructionCode::LIT, 0, (int)ch->value, "char '" + std::string(1, ch->value) + "'");
+        add(InstructionCode::LIT, 0, ch->value, "char '" + std::string(1, ch->value) + "'");
     } else if (auto* str = dynamic_cast<StringNode*>(node)) {
         add(InstructionCode::LIT, 0, str->value, "string \"" + str->value + "\"");
     } else if (auto* b = dynamic_cast<BoolNode*>(node)) {

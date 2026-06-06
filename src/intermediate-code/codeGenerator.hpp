@@ -37,6 +37,7 @@ private:
     CodeGenerationResult result;
     std::map<int, int> subprogramEntries;  // tabIndex -> instruction index
     int currentLevel = 1;  // Current lexical level being processed
+    int currentCaseTempAddress = -1;  // Extra frame slot reserved for case expression
 
     int add(InstructionCode code, int level, InstructionArgument argument, const std::string& comment = "");
     void editInstruction(int instructionIndex, int value);
@@ -75,6 +76,7 @@ private:
     OperationCode operationForBinaryOperator(const std::string& op) const;
     bool isBuiltinWriteCall(const ProcCallNode* node) const;
     bool isBuiltinReadCall(const ProcCallNode* node) const;
+    bool containsCase(ASTNode* node) const;
 };
 
 #endif
