@@ -80,3 +80,46 @@ Writing a full compiler front-end demonstrates:
 - Code generation and virtual machine architecture
 
 Compiler construction is considered one of the most challenging CS fundamentals — and is a strong signal for any role requiring algorithmic thinking, systems programming, or language design.
+
+---
+
+## Architecture
+
+### Compilation Pipeline
+
+```mermaid
+flowchart LR
+    Source[Source Code] --> Lexer[Lexical Analysis]
+    Lexer --> Parser[Syntax Analysis]
+    Parser --> Semantic[Semantic Analysis]
+    Semantic --> IR[Intermediate Code Gen]
+    IR --> Interp[Stack-Machine Interpreter]
+    Interp --> Output[Runtime Output]
+
+    Lexer --> DFA[DFA-based Tokenizer]
+    Parser --> RDP[Recursive Descent]
+    Semantic --> AST[Decorated AST]
+    Semantic --> Sym[Symbol Table]
+```
+
+### DFA Diagram
+
+![DFA Diagram](doc/Diagram-01-ABS.png)
+
+---
+
+## Screenshots
+
+<!-- TODO: Add screenshot of the compiler running source code and producing output -->
+<!-- Example: ![Compiler Demo](screenshots/compiler-demo.png) -->
+
+To capture: Run `./bin/main examples/sample.arion` and screenshot the terminal showing compilation + execution output.
+
+## Quick Start
+
+**Requirements:** `g++` (C++17), GNU Make
+
+```bash
+make clean && make
+./bin/main examples/sample.arion
+```
